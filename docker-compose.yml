@@ -1,0 +1,284 @@
+version: '3.8'
+
+services:
+  # ─── Databases ──────────────────────────────────────────────────────────────
+
+  auth-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_pass
+    ports:
+      - '5432:5432'
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U auth_user -d auth_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  domain-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: domain_db
+      POSTGRES_USER: domain_user
+      POSTGRES_PASSWORD: domain_pass
+    ports:
+      - '5433:5432'
+    volumes:
+      - domain-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U domain_user -d domain_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  order-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: order_db
+      POSTGRES_USER: order_user
+      POSTGRES_PASSWORD: order_pass
+    ports:
+      - '5434:5432'
+    volumes:
+      - order-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U order_user -d order_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  payment-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: payment_db
+      POSTGRES_USER: payment_user
+      POSTGRES_PASSWORD: payment_pass
+    ports:
+      - '5435:5432'
+    volumes:
+      - payment-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U payment_user -d payment_db']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  wp-db:
+    image: mysql:8.0
+    environment:
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wp_user
+      MYSQL_PASSWORD: wp_pass
+      MYSQL_ROOT_PASSWORD: root_pass
+    ports:
+      - '3306:3306'
+    volumes:
+      - wp-db-data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD', 'mysqladmin', 'ping', '-h', 'localhost', '-u', 'wp_user', '-pwp_pass']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ─── Kafka ──────────────────────────────────────────────────────────────────
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    healthcheck:
+      test: ['CMD-SHELL', 'echo ruok | nc localhost 2181']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    ports:
+      - '9092:9092'
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+    healthcheck:
+      test: ['CMD-SHELL', 'kafka-topics --bootstrap-server localhost:29092 --list']
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  # ─── Application Services ───────────────────────────────────────────────────
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: apps/auth-service/Dockerfile
+    ports:
+      - '3001:3001'
+    environment:
+      PORT: 3001
+      DATABASE_URL: postgresql://auth_user:auth_pass@auth-db:5432/auth_db
+      JWT_SECRET: dev-jwt-secret-change-in-prod
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:3001/health || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  domain-service:
+    build:
+      context: .
+      dockerfile: apps/domain-service/Dockerfile
+    ports:
+      - '3002:3002'
+    environment:
+      PORT: 3002
+      DATABASE_URL: postgresql://domain_user:domain_pass@domain-db:5432/domain_db
+      KAFKA_BROKERS: kafka:29092
+    depends_on:
+      domain-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:3002/health || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  order-service:
+    build:
+      context: apps/order-service
+      dockerfile: Dockerfile
+    ports:
+      - '3003:3003'
+    environment:
+      PORT: 3003
+      DATABASE_URL: postgresql://order_user:order_pass@order-db:5432/order_db
+      KAFKA_BROKERS: kafka:29092
+      FRAUD_SIDECAR_URL: http://fraud-sidecar:3005
+    depends_on:
+      order-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      fraud-sidecar:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:3003/health || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  payment-service:
+    build:
+      context: apps/payment-service
+      dockerfile: Dockerfile
+    ports:
+      - '3004:3004'
+    environment:
+      PORT: 3004
+      DATABASE_URL: postgresql://payment_user:payment_pass@payment-db:5432/payment_db
+      KAFKA_BROKERS: kafka:29092
+    depends_on:
+      payment-db:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:3004/health || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  fraud-sidecar:
+    build:
+      context: apps/fraud-sidecar
+      dockerfile: Dockerfile
+    ports:
+      - '3005:3005'
+    environment:
+      PORT: 3005
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
+      KAFKA_BROKERS: kafka:29092
+    depends_on:
+      kafka:
+        condition: service_healthy
+    healthcheck:
+      test: ['CMD-SHELL', 'wget -qO- http://localhost:3005/health || exit 1']
+      interval: 15s
+      timeout: 5s
+      retries: 5
+
+  wordpress:
+    build:
+      context: apps/wordpress
+      dockerfile: Dockerfile
+    ports:
+      - '8080:80'
+    environment:
+      WORDPRESS_DB_HOST: wp-db
+      WORDPRESS_DB_USER: wp_user
+      WORDPRESS_DB_PASSWORD: wp_pass
+      WORDPRESS_DB_NAME: wordpress
+      WORDPRESS_URL: http://localhost:8080
+      WP_ADMIN_USER: admin
+      WP_ADMIN_PASS: admin_pass
+      WP_ADMIN_EMAIL: admin@example.com
+    depends_on:
+      wp-db:
+        condition: service_healthy
+    volumes:
+      - wp-content:/var/www/html/wp-content/uploads
+
+  gateway:
+    build:
+      context: .
+      dockerfile: apps/gateway/Dockerfile
+    ports:
+      - '4000:4000'
+    environment:
+      GATEWAY_PORT: 4000
+      AUTH_SERVICE_URL: http://auth-service:3001/graphql
+      DOMAIN_SERVICE_URL: http://domain-service:3002/graphql
+      ORDER_SERVICE_URL: http://order-service:3003/graphql
+      WORDPRESS_SERVICE_URL: http://wordpress:80/graphql
+    depends_on:
+      - auth-service
+      - domain-service
+      - order-service
+      - wordpress
+
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+    ports:
+      - '3000:3000'
+    environment:
+      NEXT_PUBLIC_GATEWAY_URL: http://localhost:4000/graphql
+      GATEWAY_URL: http://gateway:4000/graphql
+    depends_on:
+      - gateway
+
+volumes:
+  auth-db-data:
+  domain-db-data:
+  order-db-data:
+  payment-db-data:
+  wp-db-data:
+  wp-content:

@@ -1,0 +1,256 @@
+{
+  "version": "6.0",
+  "nxVersion": "22.6.5",
+  "pathMappings": {
+    "@teste-manuel/shared-types": [
+      "libs/shared/types/src/index.ts"
+    ],
+    "@teste-manuel/shared-utils": [
+      "libs/shared/utils/src/index.ts"
+    ],
+    "@teste-manuel/shared-testing": [
+      "libs/shared/testing/src/index.ts"
+    ],
+    "@teste-manuel/domain": [
+      "libs/domain/src/index.ts"
+    ],
+    "@teste-manuel/graphql": [
+      "libs/graphql/src/index.ts"
+    ]
+  },
+  "nxJsonPlugins": [],
+  "pluginsConfig": {
+    "@nx/js": {
+      "analyzeSourceFiles": false
+    }
+  },
+  "fileMap": {
+    "nonProjectFiles": [
+      {
+        "file": ".gitignore",
+        "hash": "1559987156872336044"
+      },
+      {
+        "file": ".prettierignore",
+        "hash": "15327787150699029078"
+      },
+      {
+        "file": "TesteManuel.md",
+        "hash": "9649978960396395142"
+      },
+      {
+        "file": "docs/superpowers/plans/2026-05-10-ecommerce-implementation.md",
+        "hash": "5653795537260752543"
+      },
+      {
+        "file": "docs/superpowers/specs/2026-05-10-ecommerce-monorepo-design.md",
+        "hash": "11317904971740496244"
+      },
+      {
+        "file": "jest.preset.js",
+        "hash": "3773705040510547295"
+      },
+      {
+        "file": "libs/shared/testing/package.json",
+        "hash": "7537375473975609552"
+      },
+      {
+        "file": "libs/shared/testing/src/index.ts",
+        "hash": "572650221368351190"
+      },
+      {
+        "file": "libs/shared/types/package.json",
+        "hash": "13562948096479142023"
+      },
+      {
+        "file": "libs/shared/types/src/index.ts",
+        "hash": "4319851002477264444"
+      },
+      {
+        "file": "libs/shared/utils/package.json",
+        "hash": "9741225258116991952"
+      },
+      {
+        "file": "libs/shared/utils/src/index.ts",
+        "hash": "17780034738516977731"
+      },
+      {
+        "file": "nx.json",
+        "hash": "10044793932607724326"
+      },
+      {
+        "file": "package-lock.json",
+        "hash": "3270175459254273237"
+      },
+      {
+        "file": "package.json",
+        "hash": "390160628477511344"
+      },
+      {
+        "file": "pnpm-workspace.yaml",
+        "hash": "3364563017719869349"
+      },
+      {
+        "file": "tsconfig.base.json",
+        "hash": "1336439791444938836"
+      }
+    ],
+    "projectFileMap": {
+      "@teste-manuel/domain": [
+        {
+          "file": "libs/domain/package.json",
+          "hash": "11136951042656277354"
+        },
+        {
+          "file": "libs/domain/src/index.ts",
+          "hash": "9310664830224179480"
+        }
+      ],
+      "@teste-manuel/gateway": [
+        {
+          "file": "apps/gateway/jest.config.ts",
+          "hash": "17406285328745040146"
+        },
+        {
+          "file": "apps/gateway/package.json",
+          "hash": "5881212195895222483",
+          "deps": [
+            "npm:@types/node",
+            "npm:typescript",
+            "npm:ts-node",
+            "npm:graphql",
+            "@teste-manuel/graphql"
+          ]
+        },
+        {
+          "file": "apps/gateway/src/__tests__/middleware/authMiddleware.spec.ts",
+          "hash": "12600870806778302243"
+        },
+        {
+          "file": "apps/gateway/src/index.ts",
+          "hash": "11277364372043787437"
+        },
+        {
+          "file": "apps/gateway/src/middleware/authMiddleware.ts",
+          "hash": "15248165867547159730"
+        },
+        {
+          "file": "apps/gateway/tsconfig.json",
+          "hash": "10365860569452473907"
+        },
+        {
+          "file": "apps/gateway/tsconfig.spec.json",
+          "hash": "14308259638738553645"
+        }
+      ],
+      "@teste-manuel/graphql": [
+        {
+          "file": "libs/graphql/package.json",
+          "hash": "6077750289808913378"
+        },
+        {
+          "file": "libs/graphql/src/index.ts",
+          "hash": "7290990585852627195"
+        }
+      ],
+      "@teste-manuel/auth-service": [
+        {
+          "file": "apps/auth-service/jest.config.ts",
+          "hash": "9048959604617874914"
+        },
+        {
+          "file": "apps/auth-service/package.json",
+          "hash": "16042880977241457343",
+          "deps": [
+            "npm:typescript",
+            "npm:ts-node",
+            "npm:@types/node",
+            "npm:jest",
+            "npm:@types/jest",
+            "npm:ts-jest",
+            "@teste-manuel/domain",
+            "@teste-manuel/graphql",
+            "npm:graphql"
+          ]
+        },
+        {
+          "file": "apps/auth-service/src/__tests__/application/handlers/LoginHandler.spec.ts",
+          "hash": "11107362740247830138"
+        },
+        {
+          "file": "apps/auth-service/src/__tests__/application/handlers/MockUserRepository.ts",
+          "hash": "12690370464696785979"
+        },
+        {
+          "file": "apps/auth-service/src/__tests__/application/handlers/RegisterHandler.spec.ts",
+          "hash": "13465689647526677982"
+        },
+        {
+          "file": "apps/auth-service/src/__tests__/domain/entities/User.spec.ts",
+          "hash": "15531159520579546926"
+        },
+        {
+          "file": "apps/auth-service/src/__tests__/domain/value-objects/Email.spec.ts",
+          "hash": "15747085814934658083"
+        },
+        {
+          "file": "apps/auth-service/src/__tests__/domain/value-objects/Password.spec.ts",
+          "hash": "12917062680621542435"
+        },
+        {
+          "file": "apps/auth-service/src/application/commands/LoginCommand.ts",
+          "hash": "11808760433692675880"
+        },
+        {
+          "file": "apps/auth-service/src/application/commands/RegisterCommand.ts",
+          "hash": "16062494546851683743"
+        },
+        {
+          "file": "apps/auth-service/src/application/dto/AuthPayloadDTO.ts",
+          "hash": "17356841556401440982"
+        },
+        {
+          "file": "apps/auth-service/src/application/handlers/LoginHandler.ts",
+          "hash": "5599508890625921388"
+        },
+        {
+          "file": "apps/auth-service/src/application/handlers/RegisterHandler.ts",
+          "hash": "7051542295212614246"
+        },
+        {
+          "file": "apps/auth-service/src/domain/entities/User.ts",
+          "hash": "3865770509451852221"
+        },
+        {
+          "file": "apps/auth-service/src/domain/events/UserCreatedEvent.ts",
+          "hash": "3491453361101475716"
+        },
+        {
+          "file": "apps/auth-service/src/domain/repositories/IUserRepository.ts",
+          "hash": "5296861947120601837"
+        },
+        {
+          "file": "apps/auth-service/src/domain/value-objects/Email.ts",
+          "hash": "17975301172041099096"
+        },
+        {
+          "file": "apps/auth-service/src/domain/value-objects/Password.ts",
+          "hash": "2799068513754321913"
+        },
+        {
+          "file": "apps/auth-service/src/domain/value-objects/UserId.ts",
+          "hash": "11996699591059814059"
+        },
+        {
+          "file": "apps/auth-service/tsconfig.json",
+          "hash": "8408674394530860597"
+        },
+        {
+          "file": "apps/auth-service/tsconfig.spec.json",
+          "hash": "14308259638738553645"
+        }
+      ]
+    }
+  },
+  "externalNodesHash": "6848203533211060475"
+}

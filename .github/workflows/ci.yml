@@ -1,0 +1,200 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint-and-test:
+    name: Lint & Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run auth-service tests
+        run: node node_modules/.bin/jest --config apps/auth-service/jest.config.ts --ci --coverage
+
+      - name: Run domain-service tests
+        run: node node_modules/.bin/jest --config apps/domain-service/jest.config.ts --ci --coverage
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false
+
+  build:
+    name: Build All Services
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build auth-service
+        run: node node_modules/.bin/tsc -p apps/auth-service/tsconfig.json
+
+      - name: Build domain-service
+        run: node node_modules/.bin/tsc -p apps/domain-service/tsconfig.json
+
+  test-go:
+    name: Go Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+
+      - name: Test order-service
+        run: go test ./...
+        working-directory: apps/order-service
+
+      - name: Test payment-service
+        run: go test ./...
+        working-directory: apps/payment-service
+
+  test-python:
+    name: Python Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install fraud-sidecar deps
+        run: pip install -r requirements.txt
+        working-directory: apps/fraud-sidecar
+
+      - name: Run pytest
+        run: pytest
+        working-directory: apps/fraud-sidecar
+
+  docker:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: [build, test-go, test-python]
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Validate docker-compose
+        run: docker compose config --quiet
+
+      - name: Build auth-service image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/auth-service/Dockerfile
+          push: false
+          tags: teste-manuel/auth-service:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build domain-service image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/domain-service/Dockerfile
+          push: false
+          tags: teste-manuel/domain-service:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build gateway image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/gateway/Dockerfile
+          push: false
+          tags: teste-manuel/gateway:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build order-service image
+        uses: docker/build-push-action@v5
+        with:
+          context: apps/order-service
+          file: apps/order-service/Dockerfile
+          push: false
+          tags: teste-manuel/order-service:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build payment-service image
+        uses: docker/build-push-action@v5
+        with:
+          context: apps/payment-service
+          file: apps/payment-service/Dockerfile
+          push: false
+          tags: teste-manuel/payment-service:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build fraud-sidecar image
+        uses: docker/build-push-action@v5
+        with:
+          context: apps/fraud-sidecar
+          file: apps/fraud-sidecar/Dockerfile
+          push: false
+          tags: teste-manuel/fraud-sidecar:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Build wordpress image
+        uses: docker/build-push-action@v5
+        with:
+          context: apps/wordpress
+          file: apps/wordpress/Dockerfile
+          push: false
+          tags: teste-manuel/wordpress:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

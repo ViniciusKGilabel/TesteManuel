@@ -1,0 +1,562 @@
+{
+  "apps/auth-service": {
+    "root": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "name": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "projectType": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "tags": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "tags.npm:public": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.targetGroups": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.targetGroups.NPM Scripts": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.targetGroups.NPM Scripts.0": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.targetGroups.NPM Scripts.1": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.targetGroups.NPM Scripts.2": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.targetGroups.NPM Scripts.3": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.targetGroups.NPM Scripts.4": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.packageName": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.packageVersion": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.packageMain": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.isInPackageManagerWorkspaces": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.start": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.start.executor": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.start.options": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.start.metadata": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.start.options.script": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.start.metadata.scriptContent": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.start.metadata.runCommand": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.dev": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.dev.executor": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.dev.options": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.dev.metadata": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.dev.options.script": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.dev.metadata.scriptContent": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.dev.metadata.runCommand": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.build": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.build.executor": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.build.options": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.build.metadata": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.build.options.script": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.build.metadata.scriptContent": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.build.metadata.runCommand": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test.executor": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test.options": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test.metadata": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test.options.script": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test.metadata.scriptContent": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test.metadata.runCommand": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test:watch": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test:watch.executor": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test:watch.options": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test:watch.metadata": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test:watch.options.script": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test:watch.metadata.scriptContent": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test:watch.metadata.runCommand": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.nx-release-publish": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.nx-release-publish.executor": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.nx-release-publish.dependsOn": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.nx-release-publish.options": [
+      "apps/auth-service/package.json",
+      "nx/core/package-json"
+    ]
+  },
+  "apps/gateway": {
+    "root": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "name": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "projectType": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "tags": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "tags.npm:public": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.targetGroups": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.targetGroups.NPM Scripts": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.targetGroups.NPM Scripts.0": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.targetGroups.NPM Scripts.1": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.targetGroups.NPM Scripts.2": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.targetGroups.NPM Scripts.3": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.targetGroups.NPM Scripts.4": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.packageName": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.packageVersion": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.packageMain": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.isInPackageManagerWorkspaces": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.start": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.start.executor": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.start.options": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.start.metadata": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.start.options.script": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.start.metadata.scriptContent": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.start.metadata.runCommand": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.dev": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.dev.executor": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.dev.options": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.dev.metadata": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.dev.options.script": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.dev.metadata.scriptContent": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.dev.metadata.runCommand": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.build": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.build.executor": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.build.options": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.build.metadata": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.build.options.script": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.build.metadata.scriptContent": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.build.metadata.runCommand": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test.executor": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test.options": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test.metadata": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test.options.script": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test.metadata.scriptContent": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test.metadata.runCommand": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test:watch": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test:watch.executor": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test:watch.options": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test:watch.metadata": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test:watch.options.script": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test:watch.metadata.scriptContent": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.test:watch.metadata.runCommand": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.nx-release-publish": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.nx-release-publish.executor": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.nx-release-publish.dependsOn": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ],
+    "targets.nx-release-publish.options": [
+      "apps/gateway/package.json",
+      "nx/core/package-json"
+    ]
+  },
+  "libs/domain": {
+    "root": [
+      "libs/domain/package.json",
+      "nx/core/package-json"
+    ],
+    "name": [
+      "libs/domain/package.json",
+      "nx/core/package-json"
+    ],
+    "projectType": [
+      "libs/domain/package.json",
+      "nx/core/package-json"
+    ],
+    "tags": [
+      "libs/domain/package.json",
+      "nx/core/package-json"
+    ],
+    "tags.npm:private": [
+      "libs/domain/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.targetGroups": [
+      "libs/domain/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js": [
+      "libs/domain/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.packageName": [
+      "libs/domain/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.packageVersion": [
+      "libs/domain/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.packageMain": [
+      "libs/domain/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.isInPackageManagerWorkspaces": [
+      "libs/domain/package.json",
+      "nx/core/package-json"
+    ],
+    "targets": [
+      "libs/domain/package.json",
+      "nx/core/package-json"
+    ]
+  },
+  "libs/graphql": {
+    "root": [
+      "libs/graphql/package.json",
+      "nx/core/package-json"
+    ],
+    "name": [
+      "libs/graphql/package.json",
+      "nx/core/package-json"
+    ],
+    "projectType": [
+      "libs/graphql/package.json",
+      "nx/core/package-json"
+    ],
+    "tags": [
+      "libs/graphql/package.json",
+      "nx/core/package-json"
+    ],
+    "tags.npm:private": [
+      "libs/graphql/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.targetGroups": [
+      "libs/graphql/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js": [
+      "libs/graphql/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.packageName": [
+      "libs/graphql/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.packageVersion": [
+      "libs/graphql/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.packageMain": [
+      "libs/graphql/package.json",
+      "nx/core/package-json"
+    ],
+    "metadata.js.isInPackageManagerWorkspaces": [
+      "libs/graphql/package.json",
+      "nx/core/package-json"
+    ],
+    "targets": [
+      "libs/graphql/package.json",
+      "nx/core/package-json"
+    ]
+  }
+}

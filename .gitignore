@@ -1,0 +1,23 @@
+dist/
+build/
+node_modules/
+.env
+.env.local
+.next/
+out/
+*.log
+.DS_Store
+.aws-sam/
+
+# Go binaries
+apps/order-service/server
+apps/payment-service/server
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# NX cache
+.nx/cache/

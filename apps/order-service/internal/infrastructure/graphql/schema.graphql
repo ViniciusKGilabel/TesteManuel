@@ -1,0 +1,57 @@
+type Order @key(fields: "id") {
+  id: ID!
+  userId: ID!
+  items: [OrderItem!]!
+  total: Float!
+  status: OrderStatus!
+  fraudReport: FraudReport
+  createdAt: String!
+  updatedAt: String!
+}
+
+type OrderItem {
+  productId: ID!
+  quantity: Int!
+  unitPrice: Float!
+  subtotal: Float!
+}
+
+type FraudReport {
+  riskScore: Int!
+  riskLevel: RiskLevel!
+  narrative: String!
+  recommendedAction: String!
+  confidence: Float!
+}
+
+enum OrderStatus {
+  PENDING
+  STOCK_RESERVED
+  FRAUD_CHECKED
+  PAYMENT_REQUESTED
+  CONFIRMED
+  CANCELLED
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+type Query {
+  order(id: ID!): Order
+  orders(userId: ID!): [Order!]!
+}
+
+type Mutation {
+  placeOrder(userId: ID!, items: [OrderItemInput!]!): Order!
+}
+
+input OrderItemInput {
+  productId: ID!
+  quantity: Int!
+  unitPriceCents: Int!
+  currency: String!
+}
