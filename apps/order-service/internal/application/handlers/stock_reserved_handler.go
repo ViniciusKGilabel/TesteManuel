@@ -8,26 +8,18 @@ import (
 
 	"github.com/teste-manuel/order-service/internal/application/commands"
 	"github.com/teste-manuel/order-service/internal/domain/order"
-	"github.com/teste-manuel/order-service/internal/infrastructure/fraud"
-	"github.com/teste-manuel/order-service/internal/infrastructure/kafka"
 )
-
-// FraudChecker is the application-layer port for fraud analysis.
-// fraud.Client satisfies this interface.
-type FraudChecker interface {
-	Analyze(ctx context.Context, req fraud.AnalyzeRequest) (*fraud.AnalyzeResponse, error)
-}
 
 type StockReservedHandler struct {
 	repo        order.Repository
 	fraudClient FraudChecker
-	producer    *kafka.Producer
+	producer    OrderEventPublisher
 }
 
 func NewStockReservedHandler(
 	repo order.Repository,
 	fraudClient FraudChecker,
-	producer *kafka.Producer,
+	producer OrderEventPublisher,
 ) *StockReservedHandler {
 	return &StockReservedHandler{repo: repo, fraudClient: fraudClient, producer: producer}
 }
@@ -51,11 +43,12 @@ func (h *StockReservedHandler) Handle(ctx context.Context, cmd commands.HandleSt
 	}
 
 	report := order.FraudReport{
-		RiskScore:         fraudResp.RiskScore,
-		RiskLevel:         fraudResp.RiskLevel,
-		Narrative:         fraudResp.Narrative,
-		RecommendedAction: fraudResp.RecommendedAction,
-		Confidence:        fraudResp.Confidence,
+		RiskScore:            fraudResp.RiskScore,
+		RiskLevel:            fraudResp.RiskLevel,
+		Narrative:            fraudResp.Narrative,
+		RecommendedAction:    fraudResp.RecommendedAction,
+		Confidence:           fraudResp.Confidence,
+		ManualReviewRequired: fraudResp.ManualReviewRequired,
 	}
 	if err := o.ApplyFraudCheck(report); err != nil {
 		return fmt.Errorf("apply fraud check: %w", err)
@@ -101,16 +94,16 @@ func (h *StockReservedHandler) Handle(ctx context.Context, cmd commands.HandleSt
 	return nil
 }
 
-func buildFraudRequest(o *order.Order) fraud.AnalyzeRequest {
-	items := make([]fraud.Item, 0, len(o.Items()))
+func buildFraudRequest(o *order.Order) FraudAnalysisRequest {
+	items := make([]FraudItem, 0, len(o.Items()))
 	for _, item := range o.Items() {
-		items = append(items, fraud.Item{
+		items = append(items, FraudItem{
 			ProductID: item.ProductID(),
 			Quantity:  item.Quantity(),
 			UnitPrice: item.UnitPrice().AsFloat(),
 		})
 	}
-	return fraud.AnalyzeRequest{
+	return FraudAnalysisRequest{
 		OrderID:            o.ID(),
 		UserID:             o.UserID(),
 		Amount:             o.Total().AsFloat(),

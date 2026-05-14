@@ -8,7 +8,6 @@ import (
 
 	"github.com/teste-manuel/payment-service/internal/application/commands"
 	"github.com/teste-manuel/payment-service/internal/domain/payment"
-	"github.com/teste-manuel/payment-service/internal/infrastructure/kafka"
 )
 
 type ProcessPaymentHandler struct {
@@ -16,7 +15,7 @@ type ProcessPaymentHandler struct {
 	idempotencyStore payment.IdempotencyStore
 	uow              payment.UnitOfWork
 	provider         payment.PaymentProvider
-	producer         *kafka.Producer
+	producer         PaymentEventPublisher
 }
 
 func NewProcessPaymentHandler(
@@ -24,7 +23,7 @@ func NewProcessPaymentHandler(
 	store payment.IdempotencyStore,
 	uow payment.UnitOfWork,
 	provider payment.PaymentProvider,
-	producer *kafka.Producer,
+	producer PaymentEventPublisher,
 ) *ProcessPaymentHandler {
 	return &ProcessPaymentHandler{
 		repo:             repo,
@@ -109,12 +108,8 @@ func (h *ProcessPaymentHandler) Handle(ctx context.Context, cmd commands.Process
 		return fmt.Errorf("complete payment: %w", err)
 	}
 
-	if err := h.repo.Save(ctx, p); err != nil {
-		return fmt.Errorf("save completed payment: %w", err)
-	}
-
-	if err := h.idempotencyStore.Update(ctx, key, payment.IdempotencyCompleted); err != nil {
-		return fmt.Errorf("update idempotency key: %w", err)
+	if err := h.uow.CompletePayment(ctx, p, key); err != nil {
+		return fmt.Errorf("persist payment completion: %w", err)
 	}
 
 	if err := h.producer.PublishPaymentProcessed(ctx, p); err != nil {

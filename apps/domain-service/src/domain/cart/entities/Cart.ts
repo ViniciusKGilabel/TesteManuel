@@ -39,6 +39,13 @@ export class Cart extends AggregateRoot<string> {
   }
 
   static reconstitute(props: CartProps): Cart {
+    for (const item of props.items) {
+      if (!item.productId) throw new Error('Product ID is required');
+      if (!Number.isInteger(item.quantity) || item.quantity <= 0) {
+        throw new Error('Quantity must be a positive integer');
+      }
+      if (item.unitPrice < 0) throw new Error('Unit price cannot be negative');
+    }
     return new Cart(props);
   }
 

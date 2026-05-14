@@ -28,6 +28,7 @@ class FraudResponse(BaseModel):
     recommended_action: str
     signals_flagged: List[str] = []
     confidence: float = Field(ge=0.0, le=1.0)
+    manual_review_required: bool = False
 
     @model_validator(mode="after")
     def validate_consistency(self) -> Self:
@@ -38,9 +39,9 @@ class FraudResponse(BaseModel):
             raise ValueError(
                 f"risk_level {self.risk_level} requires recommended_action=REJECT, got {self.recommended_action!r}"
             )
-        if not is_rejected and action != "APPROVE":
+        if not is_rejected and action not in ("APPROVE", "MONITOR"):
             raise ValueError(
-                f"risk_level {self.risk_level} requires recommended_action=APPROVE, got {self.recommended_action!r}"
+                f"risk_level {self.risk_level} requires recommended_action=APPROVE or MONITOR, got {self.recommended_action!r}"
             )
 
         lo, hi = _SCORE_RANGES[self.risk_level]

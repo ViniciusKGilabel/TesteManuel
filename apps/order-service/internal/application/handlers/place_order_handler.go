@@ -7,15 +7,14 @@ import (
 
 	"github.com/teste-manuel/order-service/internal/application/commands"
 	"github.com/teste-manuel/order-service/internal/domain/order"
-	"github.com/teste-manuel/order-service/internal/infrastructure/kafka"
 )
 
 type PlaceOrderHandler struct {
 	repo     order.Repository
-	producer *kafka.Producer
+	producer OrderEventPublisher
 }
 
-func NewPlaceOrderHandler(repo order.Repository, producer *kafka.Producer) *PlaceOrderHandler {
+func NewPlaceOrderHandler(repo order.Repository, producer OrderEventPublisher) *PlaceOrderHandler {
 	return &PlaceOrderHandler{repo: repo, producer: producer}
 }
 

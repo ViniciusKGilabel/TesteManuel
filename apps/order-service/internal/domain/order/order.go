@@ -17,11 +17,12 @@ const (
 )
 
 type FraudReport struct {
-	RiskScore         int     `json:"risk_score"`
-	RiskLevel         string  `json:"risk_level"`
-	Narrative         string  `json:"narrative"`
-	RecommendedAction string  `json:"recommended_action"`
-	Confidence        float64 `json:"confidence"`
+	RiskScore            int     `json:"risk_score"`
+	RiskLevel            string  `json:"risk_level"`
+	Narrative            string  `json:"narrative"`
+	RecommendedAction    string  `json:"recommended_action"`
+	Confidence           float64 `json:"confidence"`
+	ManualReviewRequired bool    `json:"manual_review_required"`
 }
 
 type Order struct {

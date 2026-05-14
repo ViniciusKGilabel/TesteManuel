@@ -1,6 +1,11 @@
 import { Kafka, Producer } from 'kafkajs';
 
-export class StockProducer {
+export interface IStockProducer {
+  publishStockReserved(orderID: string): Promise<void>;
+  publishStockReservationFailed(orderID: string, reason: string): Promise<void>;
+}
+
+export class StockProducer implements IStockProducer {
   private readonly producer: Producer;
 
   constructor(private readonly brokers: string) {

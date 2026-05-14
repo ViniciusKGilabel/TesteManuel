@@ -1,7 +1,7 @@
 import { Kafka, Consumer, EachMessagePayload } from 'kafkajs';
-import { ReserveStockHandler } from '../../application/handlers/ReserveStockHandler';
-import { ReleaseStockHandler } from '../../application/handlers/ReleaseStockHandler';
-import { StockProducer } from './producer';
+import { IReserveStockHandler } from '../../application/handlers/ReserveStockHandler';
+import { IReleaseStockHandler } from '../../application/handlers/ReleaseStockHandler';
+import { IStockProducer } from './producer';
 import { KafkaEnvelope, OrderPlacedPayload, StockReleaseRequestedPayload } from './types';
 
 const TOPICS = ['order.placed', 'stock.release.requested'] as const;
@@ -12,9 +12,9 @@ export class StockConsumer {
   constructor(
     private readonly brokers: string,
     private readonly groupID: string,
-    private readonly reserveStockHandler: ReserveStockHandler,
-    private readonly releaseStockHandler: ReleaseStockHandler,
-    private readonly producer: StockProducer,
+    private readonly reserveStockHandler: IReserveStockHandler,
+    private readonly releaseStockHandler: IReleaseStockHandler,
+    private readonly producer: IStockProducer,
   ) {
     const kafka = new Kafka({
       clientId: 'domain-service-consumer',

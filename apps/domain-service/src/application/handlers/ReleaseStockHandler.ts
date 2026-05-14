@@ -10,7 +10,11 @@ export interface ReleaseStockCommand {
   items: ReleaseStockItem[];
 }
 
-export class ReleaseStockHandler {
+export interface IReleaseStockHandler {
+  handle(command: ReleaseStockCommand): Promise<void>;
+}
+
+export class ReleaseStockHandler implements IReleaseStockHandler {
   constructor(private readonly productRepository: IProductRepository) {}
 
   async handle(command: ReleaseStockCommand): Promise<void> {

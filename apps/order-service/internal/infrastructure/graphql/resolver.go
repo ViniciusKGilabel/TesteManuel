@@ -218,16 +218,42 @@ func errResponse(msg string) map[string]interface{} {
 	return map[string]interface{}{"errors": []map[string]string{{"message": msg}}}
 }
 
-// rootFieldName returns the first root-level field name from a GraphQL document.
-// It finds the first '{' (start of the selection set), then returns the first
-// identifier inside it, so routing cannot be fooled by field values that
-// contain "_service" or "_entities" as substrings.
+// rootFieldName returns the first root-level field name from a GraphQL document,
+// correctly handling alias syntax (alias: fieldName).
 func rootFieldName(query string) string {
 	idx := strings.IndexByte(query, '{')
 	if idx < 0 {
 		return ""
 	}
-	return firstIdent(query[idx+1:])
+	s := query[idx+1:]
+
+	// Scan for the first identifier and its end position.
+	start := -1
+	end := -1
+	for i, ch := range s {
+		if isIdentRune(ch) {
+			if start < 0 {
+				start = i
+			}
+		} else if start >= 0 {
+			end = i
+			break
+		}
+	}
+	if start < 0 {
+		return ""
+	}
+	if end < 0 {
+		end = len(s)
+	}
+	candidate := s[start:end]
+
+	// If the next non-whitespace character is ':', candidate is an alias; skip to the actual field name.
+	rest := strings.TrimLeft(s[end:], " \t\r\n")
+	if len(rest) > 0 && rest[0] == ':' {
+		return firstIdent(strings.TrimLeft(rest[1:], " \t\r\n"))
+	}
+	return candidate
 }
 
 // firstIdent returns the first GraphQL identifier found in s.

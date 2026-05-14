@@ -84,7 +84,7 @@ func (s *inMemoryIdempotencyStore) Update(_ context.Context, key string, state p
 	return nil
 }
 
-// inMemoryUnitOfWork simulates atomic failure persistence without a real DB transaction.
+// inMemoryUnitOfWork simulates atomic payment state persistence without a real DB transaction.
 type inMemoryUnitOfWork struct {
 	repo  *inMemoryPaymentRepo
 	store *inMemoryIdempotencyStore
@@ -95,6 +95,13 @@ func (u *inMemoryUnitOfWork) FailPayment(ctx context.Context, p *payment.Payment
 		return err
 	}
 	return u.store.Update(ctx, key, payment.IdempotencyFailed)
+}
+
+func (u *inMemoryUnitOfWork) CompletePayment(ctx context.Context, p *payment.Payment, key string) error {
+	if err := u.repo.Save(ctx, p); err != nil {
+		return err
+	}
+	return u.store.Update(ctx, key, payment.IdempotencyCompleted)
 }
 
 // stubProvider returns a fixed result for deterministic tests.

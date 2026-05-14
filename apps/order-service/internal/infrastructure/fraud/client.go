@@ -7,35 +7,38 @@ import (
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/teste-manuel/order-service/internal/application/handlers"
 )
 
-type AnalyzeRequest struct {
-	OrderID            string  `json:"order_id"`
-	UserID             string  `json:"user_id"`
-	Amount             float64 `json:"amount"`
-	Currency           string  `json:"currency"`
-	Items              []Item  `json:"items"`
-	UserAccountAgeDays int     `json:"user_account_age_days"`
-	OrdersLast24h      int     `json:"orders_last_24h"`
-	OrdersLastHour     int     `json:"orders_last_hour"`
-	CartToOrderSeconds int     `json:"cart_to_order_seconds"`
-	IsNewAddress       bool    `json:"is_new_address"`
-	OrderTimeUTC       string  `json:"order_time_utc"`
+type analyzeRequest struct {
+	OrderID            string        `json:"order_id"`
+	UserID             string        `json:"user_id"`
+	Amount             float64       `json:"amount"`
+	Currency           string        `json:"currency"`
+	Items              []analyzeItem `json:"items"`
+	UserAccountAgeDays int           `json:"user_account_age_days"`
+	OrdersLast24h      int           `json:"orders_last_24h"`
+	OrdersLastHour     int           `json:"orders_last_hour"`
+	CartToOrderSeconds int           `json:"cart_to_order_seconds"`
+	IsNewAddress       bool          `json:"is_new_address"`
+	OrderTimeUTC       string        `json:"order_time_utc"`
 }
 
-type Item struct {
+type analyzeItem struct {
 	ProductID string  `json:"product_id"`
 	Quantity  int     `json:"quantity"`
 	UnitPrice float64 `json:"unit_price"`
 }
 
-type AnalyzeResponse struct {
-	RiskScore         int      `json:"risk_score"`
-	RiskLevel         string   `json:"risk_level"`
-	Narrative         string   `json:"narrative"`
-	RecommendedAction string   `json:"recommended_action"`
-	SignalsFlagged    []string `json:"signals_flagged"`
-	Confidence        float64  `json:"confidence"`
+type analyzeResponse struct {
+	RiskScore            int      `json:"risk_score"`
+	RiskLevel            string   `json:"risk_level"`
+	Narrative            string   `json:"narrative"`
+	RecommendedAction    string   `json:"recommended_action"`
+	SignalsFlagged       []string `json:"signals_flagged"`
+	Confidence           float64  `json:"confidence"`
+	ManualReviewRequired bool     `json:"manual_review_required"`
 }
 
 type Client struct {
@@ -52,8 +55,30 @@ func NewClient(baseURL string) *Client {
 	}
 }
 
-func (c *Client) Analyze(ctx context.Context, req AnalyzeRequest) (*AnalyzeResponse, error) {
-	body, err := json.Marshal(req)
+func (c *Client) Analyze(ctx context.Context, req handlers.FraudAnalysisRequest) (*handlers.FraudAnalysisResult, error) {
+	items := make([]analyzeItem, 0, len(req.Items))
+	for _, i := range req.Items {
+		items = append(items, analyzeItem{
+			ProductID: i.ProductID,
+			Quantity:  i.Quantity,
+			UnitPrice: i.UnitPrice,
+		})
+	}
+	payload := analyzeRequest{
+		OrderID:            req.OrderID,
+		UserID:             req.UserID,
+		Amount:             req.Amount,
+		Currency:           req.Currency,
+		Items:              items,
+		UserAccountAgeDays: req.UserAccountAgeDays,
+		OrdersLast24h:      req.OrdersLast24h,
+		OrdersLastHour:     req.OrdersLastHour,
+		CartToOrderSeconds: req.CartToOrderSeconds,
+		IsNewAddress:       req.IsNewAddress,
+		OrderTimeUTC:       req.OrderTimeUTC,
+	}
+
+	body, err := json.Marshal(payload)
 	if err != nil {
 		return nil, fmt.Errorf("marshal request: %w", err)
 	}
@@ -74,10 +99,18 @@ func (c *Client) Analyze(ctx context.Context, req AnalyzeRequest) (*AnalyzeRespo
 		return nil, fmt.Errorf("fraud sidecar returned status %d", resp.StatusCode)
 	}
 
-	var result AnalyzeResponse
+	var result analyzeResponse
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("decode response: %w", err)
 	}
 
-	return &result, nil
+	return &handlers.FraudAnalysisResult{
+		RiskScore:            result.RiskScore,
+		RiskLevel:            result.RiskLevel,
+		Narrative:            result.Narrative,
+		RecommendedAction:    result.RecommendedAction,
+		SignalsFlagged:       result.SignalsFlagged,
+		Confidence:           result.Confidence,
+		ManualReviewRequired: result.ManualReviewRequired,
+	}, nil
 }

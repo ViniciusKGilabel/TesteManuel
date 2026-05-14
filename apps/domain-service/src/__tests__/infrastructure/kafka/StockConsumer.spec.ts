@@ -1,11 +1,11 @@
 import { StockConsumer } from '../../../infrastructure/kafka/consumer';
-import { ReserveStockHandler, ReserveStockResult } from '../../../application/handlers/ReserveStockHandler';
-import { ReleaseStockHandler } from '../../../application/handlers/ReleaseStockHandler';
-import { StockProducer } from '../../../infrastructure/kafka/producer';
+import { IReserveStockHandler, ReserveStockResult } from '../../../application/handlers/ReserveStockHandler';
+import { IReleaseStockHandler } from '../../../application/handlers/ReleaseStockHandler';
+import { IStockProducer } from '../../../infrastructure/kafka/producer';
 
 // --- stubs ---
 
-class StubReserveHandler {
+class StubReserveHandler implements IReserveStockHandler {
   result: ReserveStockResult = { success: true };
   received: unknown[] = [];
 
@@ -15,7 +15,7 @@ class StubReserveHandler {
   }
 }
 
-class StubReleaseHandler {
+class StubReleaseHandler implements IReleaseStockHandler {
   received: unknown[] = [];
 
   async handle(cmd: unknown): Promise<void> {
@@ -23,7 +23,7 @@ class StubReleaseHandler {
   }
 }
 
-class StubProducer {
+class StubProducer implements IStockProducer {
   reservedCalls: string[] = [];
   failedCalls: Array<{ orderID: string; reason: string }> = [];
   reservedError: Error | null = null;
@@ -39,17 +39,11 @@ class StubProducer {
 }
 
 function buildConsumer(
-  reserve: StubReserveHandler,
-  release: StubReleaseHandler,
-  producer: StubProducer,
+  reserve: IReserveStockHandler,
+  release: IReleaseStockHandler,
+  producer: IStockProducer,
 ): StockConsumer {
-  return new StockConsumer(
-    '',
-    'test-group',
-    reserve as unknown as ReserveStockHandler,
-    release as unknown as ReleaseStockHandler,
-    producer as unknown as StockProducer,
-  );
+  return new StockConsumer('', 'test-group', reserve, release, producer);
 }
 
 function makeEnvelope(eventType: string, payload: unknown): string {

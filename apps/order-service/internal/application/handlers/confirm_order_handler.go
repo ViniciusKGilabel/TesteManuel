@@ -7,15 +7,14 @@ import (
 
 	"github.com/teste-manuel/order-service/internal/application/commands"
 	"github.com/teste-manuel/order-service/internal/domain/order"
-	"github.com/teste-manuel/order-service/internal/infrastructure/kafka"
 )
 
 type ConfirmOrderHandler struct {
 	repo     order.Repository
-	producer *kafka.Producer
+	producer OrderEventPublisher
 }
 
-func NewConfirmOrderHandler(repo order.Repository, producer *kafka.Producer) *ConfirmOrderHandler {
+func NewConfirmOrderHandler(repo order.Repository, producer OrderEventPublisher) *ConfirmOrderHandler {
 	return &ConfirmOrderHandler{repo: repo, producer: producer}
 }
 

@@ -7,15 +7,14 @@ import (
 
 	"github.com/teste-manuel/order-service/internal/application/commands"
 	"github.com/teste-manuel/order-service/internal/domain/order"
-	"github.com/teste-manuel/order-service/internal/infrastructure/kafka"
 )
 
 type CancelOrderHandler struct {
 	repo     order.Repository
-	producer *kafka.Producer
+	producer OrderEventPublisher
 }
 
-func NewCancelOrderHandler(repo order.Repository, producer *kafka.Producer) *CancelOrderHandler {
+func NewCancelOrderHandler(repo order.Repository, producer OrderEventPublisher) *CancelOrderHandler {
 	return &CancelOrderHandler{repo: repo, producer: producer}
 }
 

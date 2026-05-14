@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/confluentinc/confluent-kafka-go/v2/kafka"
+	"github.com/teste-manuel/order-service/internal/application/handlers"
 	"github.com/teste-manuel/order-service/internal/domain/order"
-	"github.com/teste-manuel/order-service/internal/infrastructure/fraud"
 )
 
 type Producer struct {
@@ -139,17 +139,19 @@ func (p *Producer) PublishStockReleaseRequested(ctx context.Context, o *order.Or
 	})
 }
 
-func (p *Producer) PublishFraudCheckCompleted(ctx context.Context, o *order.Order, resp *fraud.AnalyzeResponse) error {
+// PublishFraudCheckCompleted emits fraud.check.completed for observability only.
+// Saga routing is driven by payment.requested — never by this event.
+func (p *Producer) PublishFraudCheckCompleted(ctx context.Context, o *order.Order, result *handlers.FraudAnalysisResult) error {
 	return p.publish(ctx, "fraud.check.completed", o.ID(), kafkaMessage{
 		SagaID:    "order-" + o.ID(),
 		EventType: "fraud.check.completed",
 		Timestamp: time.Now().UTC().Format(time.RFC3339),
 		Payload: map[string]interface{}{
 			"order_id":           o.ID(),
-			"risk_score":         resp.RiskScore,
-			"risk_level":         resp.RiskLevel,
-			"recommended_action": resp.RecommendedAction,
-			"confidence":         resp.Confidence,
+			"risk_score":         result.RiskScore,
+			"risk_level":         result.RiskLevel,
+			"recommended_action": result.RecommendedAction,
+			"confidence":         result.Confidence,
 		},
 	})
 }

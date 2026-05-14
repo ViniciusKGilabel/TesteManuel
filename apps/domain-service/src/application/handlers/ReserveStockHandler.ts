@@ -14,7 +14,11 @@ export type ReserveStockResult =
   | { success: true }
   | { success: false; reason: string };
 
-export class ReserveStockHandler {
+export interface IReserveStockHandler {
+  handle(command: ReserveStockCommand): Promise<ReserveStockResult>;
+}
+
+export class ReserveStockHandler implements IReserveStockHandler {
   constructor(private readonly productRepository: IProductRepository) {}
 
   async handle(command: ReserveStockCommand): Promise<ReserveStockResult> {

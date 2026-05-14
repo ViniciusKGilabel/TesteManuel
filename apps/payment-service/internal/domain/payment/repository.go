@@ -46,8 +46,9 @@ type IdempotencyStore interface {
 
 // UnitOfWork atomically persists a terminal payment state change together with
 // the matching idempotency key update in a single database transaction.
-// This prevents the saga from receiving payment.failed while the payment row
+// This prevents the saga from receiving payment events while the payment row
 // or idempotency key are still in an intermediate state.
 type UnitOfWork interface {
 	FailPayment(ctx context.Context, p *Payment, key string) error
+	CompletePayment(ctx context.Context, p *Payment, key string) error
 }
