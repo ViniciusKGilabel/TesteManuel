@@ -17,23 +17,24 @@ const (
 )
 
 type FraudReport struct {
-	RiskScore         int
-	RiskLevel         string
-	Narrative         string
-	RecommendedAction string
-	Confidence        float64
+	RiskScore         int     `json:"risk_score"`
+	RiskLevel         string  `json:"risk_level"`
+	Narrative         string  `json:"narrative"`
+	RecommendedAction string  `json:"recommended_action"`
+	Confidence        float64 `json:"confidence"`
 }
 
 type Order struct {
-	id          string
-	userID      string
-	items       []OrderItem
-	total       Money
-	status      Status
-	fraudReport *FraudReport
-	createdAt   time.Time
-	updatedAt   time.Time
-	events      []interface{}
+	id             string
+	userID         string
+	items          []OrderItem
+	total          Money
+	status         Status
+	fraudReport    *FraudReport
+	paymentAttempt int
+	createdAt      time.Time
+	updatedAt      time.Time
+	events         []interface{}
 }
 
 func NewOrder(id, userID string, items []OrderItem) (*Order, error) {
@@ -95,6 +96,7 @@ func (o *Order) RequestPayment() error {
 	if o.status != StatusFraudChecked {
 		return errors.New("can only request payment after fraud check")
 	}
+	o.paymentAttempt++
 	o.status = StatusPaymentRequested
 	o.updatedAt = time.Now().UTC()
 	return nil
@@ -130,6 +132,16 @@ func (o *Order) CreatedAt() time.Time      { return o.createdAt }
 func (o *Order) UpdatedAt() time.Time      { return o.updatedAt }
 func (o *Order) Events() []interface{}     { return o.events }
 func (o *Order) ClearEvents()              { o.events = nil }
+func (o *Order) PaymentAttempt() int       { return o.paymentAttempt }
+func (o *Order) SetPaymentAttempt(attempt int) { o.paymentAttempt = attempt }
+
+// RequiresStockRelease reports whether cancelling this order must also release reserved stock.
+// Stock is reserved once the order moves past PENDING; it must be freed on cancellation.
+func (o *Order) RequiresStockRelease() bool {
+	return o.status == StatusStockReserved ||
+		o.status == StatusFraudChecked ||
+		o.status == StatusPaymentRequested
+}
 
 func calculateTotal(items []OrderItem) (Money, error) {
 	if len(items) == 0 {

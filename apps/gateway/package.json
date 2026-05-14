@@ -12,7 +12,7 @@
   "dependencies": {
     "@apollo/gateway": "^2.5.0",
     "@apollo/subgraph": "^2.5.0",
-    "apollo-server": "^4.10.0",
+    "@apollo/server": "^4.10.0",
     "graphql": "^16.8.0",
     "@teste-manuel/graphql": "0.0.1"
   },

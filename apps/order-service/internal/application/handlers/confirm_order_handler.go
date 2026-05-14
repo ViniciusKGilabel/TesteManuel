@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/teste-manuel/order-service/internal/application/commands"
 	"github.com/teste-manuel/order-service/internal/domain/order"
@@ -34,6 +35,10 @@ func (h *ConfirmOrderHandler) Handle(ctx context.Context, cmd commands.ConfirmOr
 
 	if err := h.producer.PublishOrderConfirmed(ctx, o); err != nil {
 		return fmt.Errorf("publish order.confirmed: %w", err)
+	}
+
+	if err := h.producer.PublishSagaState(ctx, o); err != nil {
+		log.Printf("[saga-state] publish failed order=%s: %v", o.ID(), err)
 	}
 
 	return nil

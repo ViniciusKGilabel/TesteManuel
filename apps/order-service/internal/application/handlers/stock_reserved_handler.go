@@ -1,0 +1,126 @@
+package handlers
+
+import (
+	"context"
+	"fmt"
+	"log"
+	"time"
+
+	"github.com/teste-manuel/order-service/internal/application/commands"
+	"github.com/teste-manuel/order-service/internal/domain/order"
+	"github.com/teste-manuel/order-service/internal/infrastructure/fraud"
+	"github.com/teste-manuel/order-service/internal/infrastructure/kafka"
+)
+
+// FraudChecker is the application-layer port for fraud analysis.
+// fraud.Client satisfies this interface.
+type FraudChecker interface {
+	Analyze(ctx context.Context, req fraud.AnalyzeRequest) (*fraud.AnalyzeResponse, error)
+}
+
+type StockReservedHandler struct {
+	repo        order.Repository
+	fraudClient FraudChecker
+	producer    *kafka.Producer
+}
+
+func NewStockReservedHandler(
+	repo order.Repository,
+	fraudClient FraudChecker,
+	producer *kafka.Producer,
+) *StockReservedHandler {
+	return &StockReservedHandler{repo: repo, fraudClient: fraudClient, producer: producer}
+}
+
+func (h *StockReservedHandler) Handle(ctx context.Context, cmd commands.HandleStockReserved) error {
+	o, err := h.repo.FindByID(ctx, cmd.OrderID)
+	if err != nil {
+		return fmt.Errorf("find order: %w", err)
+	}
+
+	if err := o.ReserveStock(); err != nil {
+		return fmt.Errorf("mark stock reserved: %w", err)
+	}
+	if err := h.repo.Save(ctx, o); err != nil {
+		return fmt.Errorf("save after stock reserved: %w", err)
+	}
+
+	fraudResp, err := h.fraudClient.Analyze(ctx, buildFraudRequest(o))
+	if err != nil {
+		return fmt.Errorf("fraud check: %w", err)
+	}
+
+	report := order.FraudReport{
+		RiskScore:         fraudResp.RiskScore,
+		RiskLevel:         fraudResp.RiskLevel,
+		Narrative:         fraudResp.Narrative,
+		RecommendedAction: fraudResp.RecommendedAction,
+		Confidence:        fraudResp.Confidence,
+	}
+	if err := o.ApplyFraudCheck(report); err != nil {
+		return fmt.Errorf("apply fraud check: %w", err)
+	}
+	if err := h.repo.Save(ctx, o); err != nil {
+		return fmt.Errorf("save after fraud check: %w", err)
+	}
+
+	if fraudResp.RiskLevel == "HIGH" || fraudResp.RiskLevel == "CRITICAL" {
+		if err := o.Cancel(fmt.Sprintf("fraud rejected: %s risk", fraudResp.RiskLevel)); err != nil {
+			return fmt.Errorf("cancel order (fraud): %w", err)
+		}
+		if err := h.repo.Save(ctx, o); err != nil {
+			return fmt.Errorf("save cancelled order: %w", err)
+		}
+		if err := h.producer.PublishOrderCancelled(ctx, o, fmt.Sprintf("fraud:%s", fraudResp.RiskLevel)); err != nil {
+			return fmt.Errorf("publish order.cancelled: %w", err)
+		}
+		if err := h.producer.PublishStockReleaseRequested(ctx, o); err != nil {
+			return fmt.Errorf("publish stock.release.requested: %w", err)
+		}
+		if err := h.producer.PublishSagaState(ctx, o); err != nil {
+			log.Printf("[saga-state] publish failed order=%s: %v", o.ID(), err)
+		}
+		return nil
+	}
+
+	if err := o.RequestPayment(); err != nil {
+		return fmt.Errorf("request payment: %w", err)
+	}
+	if err := h.repo.Save(ctx, o); err != nil {
+		return fmt.Errorf("save after payment request: %w", err)
+	}
+	if err := h.producer.PublishFraudCheckCompleted(ctx, o, fraudResp); err != nil {
+		return fmt.Errorf("publish fraud.check.completed: %w", err)
+	}
+	if err := h.producer.PublishPaymentRequested(ctx, o); err != nil {
+		return fmt.Errorf("publish payment.requested: %w", err)
+	}
+	if err := h.producer.PublishSagaState(ctx, o); err != nil {
+		log.Printf("[saga-state] publish failed order=%s: %v", o.ID(), err)
+	}
+	return nil
+}
+
+func buildFraudRequest(o *order.Order) fraud.AnalyzeRequest {
+	items := make([]fraud.Item, 0, len(o.Items()))
+	for _, item := range o.Items() {
+		items = append(items, fraud.Item{
+			ProductID: item.ProductID(),
+			Quantity:  item.Quantity(),
+			UnitPrice: item.UnitPrice().AsFloat(),
+		})
+	}
+	return fraud.AnalyzeRequest{
+		OrderID:            o.ID(),
+		UserID:             o.UserID(),
+		Amount:             o.Total().AsFloat(),
+		Currency:           o.Total().Currency(),
+		Items:              items,
+		UserAccountAgeDays: 365,
+		OrdersLast24h:      0,
+		OrdersLastHour:     0,
+		CartToOrderSeconds: 0,
+		IsNewAddress:       false,
+		OrderTimeUTC:       o.CreatedAt().Format(time.RFC3339),
+	}
+}

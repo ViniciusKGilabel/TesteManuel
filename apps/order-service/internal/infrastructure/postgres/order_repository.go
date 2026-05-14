@@ -34,12 +34,13 @@ func (r *OrderRepository) Save(ctx context.Context, o *order.Order) error {
 	}
 
 	_, err = r.pool.Exec(ctx, `
-		INSERT INTO orders (id, user_id, items, total_cents, currency, status, fraud_report, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		INSERT INTO orders (id, user_id, items, total_cents, currency, status, fraud_report, payment_attempt, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		ON CONFLICT (id) DO UPDATE SET
-			status = EXCLUDED.status,
-			fraud_report = EXCLUDED.fraud_report,
-			updated_at = EXCLUDED.updated_at
+			status          = EXCLUDED.status,
+			fraud_report    = EXCLUDED.fraud_report,
+			payment_attempt = EXCLUDED.payment_attempt,
+			updated_at      = EXCLUDED.updated_at
 	`,
 		o.ID(),
 		o.UserID(),
@@ -48,6 +49,7 @@ func (r *OrderRepository) Save(ctx context.Context, o *order.Order) error {
 		o.Total().Currency(),
 		string(o.Status()),
 		fraudJSON,
+		o.PaymentAttempt(),
 		o.CreatedAt(),
 		o.UpdatedAt(),
 	)
@@ -59,7 +61,7 @@ func (r *OrderRepository) Save(ctx context.Context, o *order.Order) error {
 
 func (r *OrderRepository) FindByID(ctx context.Context, id string) (*order.Order, error) {
 	row := r.pool.QueryRow(ctx, `
-		SELECT id, user_id, items, total_cents, currency, status, fraud_report, created_at, updated_at
+		SELECT id, user_id, items, total_cents, currency, status, fraud_report, payment_attempt, created_at, updated_at
 		FROM orders WHERE id = $1
 	`, id)
 
@@ -68,7 +70,7 @@ func (r *OrderRepository) FindByID(ctx context.Context, id string) (*order.Order
 
 func (r *OrderRepository) FindByUserID(ctx context.Context, userID string) ([]*order.Order, error) {
 	rows, err := r.pool.Query(ctx, `
-		SELECT id, user_id, items, total_cents, currency, status, fraud_report, created_at, updated_at
+		SELECT id, user_id, items, total_cents, currency, status, fraud_report, payment_attempt, created_at, updated_at
 		FROM orders WHERE user_id = $1 ORDER BY created_at DESC
 	`, userID)
 	if err != nil {
@@ -104,10 +106,11 @@ func scanOrder(row rowScanner) (*order.Order, error) {
 		totalCents                   int64
 		itemsJSON                    []byte
 		fraudJSON                    []byte
+		paymentAttempt               int
 		createdAt, updatedAt         time.Time
 	)
 
-	if err := row.Scan(&id, &userID, &itemsJSON, &totalCents, &currency, &status, &fraudJSON, &createdAt, &updatedAt); err != nil {
+	if err := row.Scan(&id, &userID, &itemsJSON, &totalCents, &currency, &status, &fraudJSON, &paymentAttempt, &createdAt, &updatedAt); err != nil {
 		return nil, fmt.Errorf("scan order: %w", err)
 	}
 
@@ -142,6 +145,9 @@ func scanOrder(row rowScanner) (*order.Order, error) {
 	if err := advanceToStatus(o, order.Status(status), realFraud); err != nil {
 		return nil, err
 	}
+
+	o.SetPaymentAttempt(paymentAttempt)
+	o.ClearEvents()
 
 	return o, nil
 }

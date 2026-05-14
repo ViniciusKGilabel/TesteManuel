@@ -9,25 +9,27 @@ import (
 	"github.com/teste-manuel/payment-service/internal/application/commands"
 	"github.com/teste-manuel/payment-service/internal/domain/payment"
 	"github.com/teste-manuel/payment-service/internal/infrastructure/kafka"
-	"github.com/teste-manuel/payment-service/internal/infrastructure/mock_provider"
 )
 
 type ProcessPaymentHandler struct {
 	repo             payment.Repository
 	idempotencyStore payment.IdempotencyStore
-	provider         *mock_provider.Provider
+	uow              payment.UnitOfWork
+	provider         payment.PaymentProvider
 	producer         *kafka.Producer
 }
 
 func NewProcessPaymentHandler(
 	repo payment.Repository,
 	store payment.IdempotencyStore,
-	provider *mock_provider.Provider,
+	uow payment.UnitOfWork,
+	provider payment.PaymentProvider,
 	producer *kafka.Producer,
 ) *ProcessPaymentHandler {
 	return &ProcessPaymentHandler{
 		repo:             repo,
 		idempotencyStore: store,
+		uow:              uow,
 		provider:         provider,
 		producer:         producer,
 	}
@@ -50,12 +52,9 @@ func (h *ProcessPaymentHandler) Handle(ctx context.Context, cmd commands.Process
 		case payment.IdempotencyProcessing:
 			return ErrAlreadyProcessing
 		case payment.IdempotencyFailed:
-			// FAILED → reset to PROCESSING so the retry holds the lock.
-			// Per design: retry uses an incremented attempt number; the Reset
-			// here re-arms the idempotency gate for this new attempt's key.
-			if err := h.idempotencyStore.Reset(ctx, key); err != nil {
-				return fmt.Errorf("reset idempotency key: %w", err)
-			}
+			// FAILED is terminal for this attempt; payment.failed was already published.
+			// The saga retries with attempt+1, which produces a new key (NOT_FOUND path).
+			return nil
 		}
 	} else {
 		if err := h.idempotencyStore.Insert(ctx, key); err != nil {
@@ -94,17 +93,14 @@ func (h *ProcessPaymentHandler) Handle(ctx context.Context, cmd commands.Process
 		if reason == "" {
 			reason = "payment declined"
 		}
-		if failErr := p.Fail(reason); failErr != nil {
-			log.Printf("payment.Fail order=%s: %v", cmd.OrderID, failErr)
+		if err := p.Fail(reason); err != nil {
+			return fmt.Errorf("transition payment to failed: %w", err)
 		}
-		if saveErr := h.repo.Save(ctx, p); saveErr != nil {
-			log.Printf("save failed payment order=%s: %v", cmd.OrderID, saveErr)
+		if err := h.uow.FailPayment(ctx, p, key); err != nil {
+			return fmt.Errorf("persist payment failure: %w", err)
 		}
-		if updateErr := h.idempotencyStore.Update(ctx, key, payment.IdempotencyFailed); updateErr != nil {
-			log.Printf("update idempotency key order=%s: %v", cmd.OrderID, updateErr)
-		}
-		if pubErr := h.producer.PublishPaymentFailed(ctx, p); pubErr != nil {
-			return fmt.Errorf("publish payment.failed: %w", pubErr)
+		if err := h.producer.PublishPaymentFailed(ctx, p); err != nil {
+			return fmt.Errorf("publish payment.failed: %w", err)
 		}
 		return fmt.Errorf("payment failed: %s", reason)
 	}

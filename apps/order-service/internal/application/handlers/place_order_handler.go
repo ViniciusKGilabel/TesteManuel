@@ -3,21 +3,20 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/teste-manuel/order-service/internal/application/commands"
 	"github.com/teste-manuel/order-service/internal/domain/order"
-	"github.com/teste-manuel/order-service/internal/infrastructure/fraud"
 	"github.com/teste-manuel/order-service/internal/infrastructure/kafka"
 )
 
 type PlaceOrderHandler struct {
-	repo        order.Repository
-	fraudClient *fraud.Client
-	producer    *kafka.Producer
+	repo     order.Repository
+	producer *kafka.Producer
 }
 
-func NewPlaceOrderHandler(repo order.Repository, fraudClient *fraud.Client, producer *kafka.Producer) *PlaceOrderHandler {
-	return &PlaceOrderHandler{repo: repo, fraudClient: fraudClient, producer: producer}
+func NewPlaceOrderHandler(repo order.Repository, producer *kafka.Producer) *PlaceOrderHandler {
+	return &PlaceOrderHandler{repo: repo, producer: producer}
 }
 
 func (h *PlaceOrderHandler) Handle(ctx context.Context, cmd commands.PlaceOrder) (*order.Order, error) {
@@ -41,6 +40,10 @@ func (h *PlaceOrderHandler) Handle(ctx context.Context, cmd commands.PlaceOrder)
 
 	if err := h.producer.PublishOrderPlaced(ctx, o); err != nil {
 		return nil, fmt.Errorf("publish order.placed: %w", err)
+	}
+
+	if err := h.producer.PublishSagaState(ctx, o); err != nil {
+		log.Printf("[saga-state] publish failed order=%s: %v", o.ID(), err)
 	}
 
 	return o, nil

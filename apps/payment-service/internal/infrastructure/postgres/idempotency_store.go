@@ -33,17 +33,6 @@ func (s *IdempotencyStore) Insert(ctx context.Context, key string) error {
 	return nil
 }
 
-func (s *IdempotencyStore) Reset(ctx context.Context, key string) error {
-	_, err := s.pool.Exec(ctx, `
-		UPDATE idempotency_keys SET state = $1, updated_at = NOW()
-		WHERE key = $2 AND state = $3
-	`, string(payment.IdempotencyProcessing), key, string(payment.IdempotencyFailed))
-	if err != nil {
-		return fmt.Errorf("reset idempotency key: %w", err)
-	}
-	return nil
-}
-
 func (s *IdempotencyStore) Update(ctx context.Context, key string, state payment.IdempotencyState) error {
 	_, err := s.pool.Exec(ctx, `
 		UPDATE idempotency_keys SET state = $1, updated_at = NOW() WHERE key = $2
