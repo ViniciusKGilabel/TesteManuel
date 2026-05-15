@@ -171,4 +171,68 @@ describe('StockConsumer.dispatch', () => {
       expect(reserve.received).toHaveLength(0);
     });
   });
+
+  describe('idempotency cache', () => {
+    it('uses cached result on duplicate order.placed — handler called only once', async () => {
+      const reserve = new StubReserveHandler();
+      reserve.result = { success: true };
+      const producer = new StubProducer();
+      const consumer = buildConsumer(reserve, new StubReleaseHandler(), producer);
+
+      const envelope = makeEnvelope('order.placed', {
+        order_id: 'ord-dup',
+        user_id: 'user-1',
+        items: [{ product_id: 'prod-1', quantity: 1 }],
+      });
+
+      await consumer.dispatch('order.placed', envelope);
+      await consumer.dispatch('order.placed', envelope);
+
+      expect(reserve.received).toHaveLength(1);
+      expect(producer.reservedCalls).toHaveLength(2);
+    });
+
+    it('evicts oldest cache entry when the cache reaches 10 000 entries', async () => {
+      const reserve = new StubReserveHandler();
+      reserve.result = { success: true };
+      const producer = new StubProducer();
+      const consumer = buildConsumer(reserve, new StubReleaseHandler(), producer);
+
+      // Fill cache to capacity (ord-fill-0 is the oldest entry).
+      for (let i = 0; i < 10_000; i++) {
+        await consumer.dispatch(
+          'order.placed',
+          makeEnvelope('order.placed', {
+            order_id: `ord-fill-${i}`,
+            user_id: 'user-1',
+            items: [{ product_id: 'prod-1', quantity: 1 }],
+          }),
+        );
+      }
+
+      // Adding a new entry evicts ord-fill-0 (oldest).
+      await consumer.dispatch(
+        'order.placed',
+        makeEnvelope('order.placed', {
+          order_id: 'ord-trigger-eviction',
+          user_id: 'user-1',
+          items: [{ product_id: 'prod-1', quantity: 1 }],
+        }),
+      );
+
+      const callsBefore = reserve.received.length;
+
+      // ord-fill-0 is no longer in the cache — must call the handler again.
+      await consumer.dispatch(
+        'order.placed',
+        makeEnvelope('order.placed', {
+          order_id: 'ord-fill-0',
+          user_id: 'user-1',
+          items: [{ product_id: 'prod-1', quantity: 1 }],
+        }),
+      );
+
+      expect(reserve.received.length).toBe(callsBefore + 1);
+    });
+  });
 });

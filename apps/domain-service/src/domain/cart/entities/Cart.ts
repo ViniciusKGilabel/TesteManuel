@@ -1,5 +1,8 @@
 import { AggregateRoot } from '@teste-manuel/domain';
 import { generateId } from '@teste-manuel/shared-utils';
+import { CartItemAddedEvent } from '../events/CartItemAddedEvent';
+import { CartItemRemovedEvent } from '../events/CartItemRemovedEvent';
+import { CartItemQuantityUpdatedEvent } from '../events/CartItemQuantityUpdatedEvent';
 
 export interface CartLineItem {
   productId: string;
@@ -63,6 +66,7 @@ export class Cart extends AggregateRoot<string> {
       this.items.set(productId, { productId, quantity, unitPrice });
     }
     this.updatedAt = new Date();
+    this.addDomainEvent(new CartItemAddedEvent(this._id, this.userId, productId, quantity, unitPrice));
   }
 
   removeItem(productId: string): void {
@@ -71,6 +75,7 @@ export class Cart extends AggregateRoot<string> {
     }
     this.items.delete(productId);
     this.updatedAt = new Date();
+    this.addDomainEvent(new CartItemRemovedEvent(this._id, this.userId, productId));
   }
 
   updateQuantity(productId: string, quantity: number): void {
@@ -84,6 +89,7 @@ export class Cart extends AggregateRoot<string> {
     if (!existing) throw new Error('Item not found in cart');
     this.items.set(productId, { ...existing, quantity });
     this.updatedAt = new Date();
+    this.addDomainEvent(new CartItemQuantityUpdatedEvent(this._id, this.userId, productId, quantity));
   }
 
   clear(): void {

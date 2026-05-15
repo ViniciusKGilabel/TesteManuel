@@ -1,8 +1,10 @@
 export class InMemoryRepository<T> {
   private items: Map<string, T> = new Map();
 
-  async save(id: string, item: T): Promise<void> {
-    this.items.set(id, item);
+  constructor(private readonly keyFn: (item: T) => string) {}
+
+  async save(item: T): Promise<void> {
+    this.items.set(this.keyFn(item), item);
   }
 
   async findById(id: string): Promise<T | null> {

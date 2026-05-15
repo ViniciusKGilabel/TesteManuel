@@ -18,7 +18,8 @@ Respond ONLY with a valid JSON object matching this exact schema:
   "narrative": "<human-readable explanation of the risk assessment>",
   "recommended_action": <"APPROVE" | "REJECT">,
   "signals_flagged": ["<signal1>", "<signal2>"],
-  "confidence": <float 0.0-1.0>
+  "confidence": <float 0.0-1.0>,
+  "manual_review_required": <boolean — true when risk_level is CRITICAL>
 }}
 
 Risk thresholds:

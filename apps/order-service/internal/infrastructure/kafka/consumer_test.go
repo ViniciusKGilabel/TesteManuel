@@ -219,6 +219,79 @@ func TestConsumer_Dispatch(t *testing.T) {
 	})
 }
 
+// TestConsumer_Dispatch_FraudUnavailable verifies that a 5xx fraud response returns an error
+// and leaves the order in STOCK_RESERVED so the Kafka offset is not committed and the
+// message is retried.
+func TestConsumer_Dispatch_FraudUnavailable(t *testing.T) {
+	unavailableSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+	}))
+	defer unavailableSrv.Close()
+
+	repo := newInMemoryRepo()
+	pendingOrder(t, repo, "ord-fraud-down")
+	c := buildConsumer(t, repo, unavailableSrv.URL)
+
+	data := event(t, "stock.reserved", map[string]interface{}{"order_id": "ord-fraud-down"})
+	if err := c.Dispatch(context.Background(), "stock.reserved", data); err == nil {
+		t.Fatal("fraud unavailable: want error, got nil")
+	}
+
+	o, err := repo.FindByID(context.Background(), "ord-fraud-down")
+	if err != nil {
+		t.Fatalf("order not found: %v", err)
+	}
+	if o.Status() != order.StatusStockReserved {
+		t.Errorf("fraud unavailable: want STOCK_RESERVED, got %s", o.Status())
+	}
+}
+
+// TestConsumer_Dispatch_FraudUnavailable_RetrySucceeds verifies that after a failed fraud call
+// the message can be retried and succeeds because the handler is idempotent on STOCK_RESERVED.
+func TestConsumer_Dispatch_FraudUnavailable_RetrySucceeds(t *testing.T) {
+	callCount := 0
+	var mu sync.Mutex
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		mu.Lock()
+		n := callCount
+		callCount++
+		mu.Unlock()
+
+		if n == 0 {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"risk_score":         5,
+			"risk_level":         "LOW",
+			"narrative":          "no signals",
+			"recommended_action": "APPROVE",
+			"signals_flagged":    []string{},
+			"confidence":         0.99,
+		})
+	}))
+	defer srv.Close()
+
+	repo := newInMemoryRepo()
+	pendingOrder(t, repo, "ord-retry")
+	c := buildConsumer(t, repo, srv.URL)
+	data := event(t, "stock.reserved", map[string]interface{}{"order_id": "ord-retry"})
+
+	if err := c.Dispatch(context.Background(), "stock.reserved", data); err == nil {
+		t.Fatal("first attempt: want error, got nil")
+	}
+
+	if err := c.Dispatch(context.Background(), "stock.reserved", data); err != nil {
+		t.Fatalf("retry: want nil, got %v", err)
+	}
+
+	o, _ := repo.FindByID(context.Background(), "ord-retry")
+	if o.Status() != order.StatusPaymentRequested {
+		t.Errorf("after retry: want PAYMENT_REQUESTED, got %s", o.Status())
+	}
+}
+
 // TestConsumer_Dispatch_FraudRejected verifies HIGH-risk fraud triggers cancellation.
 func TestConsumer_Dispatch_FraudRejected(t *testing.T) {
 	highRiskSrv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

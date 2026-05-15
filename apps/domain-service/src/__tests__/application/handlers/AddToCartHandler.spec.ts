@@ -5,10 +5,10 @@ import { ICartRepository } from '../../../domain/cart/ICartRepository';
 import { Cart } from '../../../domain/cart/entities/Cart';
 
 class MockCartRepository implements ICartRepository {
-  private store = new InMemoryRepository<Cart>();
+  private store = new InMemoryRepository<Cart>((c: Cart) => c.cartId);
 
   async save(cart: Cart): Promise<void> {
-    await this.store.save(cart.cartId, cart);
+    await this.store.save(cart);
   }
 
   async findById(id: string): Promise<Cart | null> {

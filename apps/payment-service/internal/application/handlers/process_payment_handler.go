@@ -48,7 +48,14 @@ func (h *ProcessPaymentHandler) Handle(ctx context.Context, cmd commands.Process
 	if found {
 		switch state {
 		case payment.IdempotencyCompleted:
-			return nil // already charged — safe no-op
+			// Already charged. Re-publish payment.processed so the saga can progress
+			// if the original publish was lost (e.g. broker restart between write and publish).
+			if p, lookupErr := h.repo.FindByIdempotencyKey(ctx, key); lookupErr == nil && p != nil {
+				if err := h.producer.PublishPaymentProcessed(ctx, p); err != nil {
+					return fmt.Errorf("re-publish payment.processed: %w", err)
+				}
+			}
+			return nil
 		case payment.IdempotencyProcessing:
 			replaced, err := h.idempotencyStore.RefreshStaleProcessingLock(ctx, key, 5*time.Minute)
 			if err != nil {
@@ -91,6 +98,7 @@ func (h *ProcessPaymentHandler) Handle(ctx context.Context, cmd commands.Process
 	}
 
 	if err := h.repo.Save(ctx, p); err != nil {
+		_ = h.idempotencyStore.Update(ctx, key, payment.IdempotencyFailed)
 		return fmt.Errorf("save payment: %w", err)
 	}
 

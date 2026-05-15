@@ -24,14 +24,18 @@ func (h *CancelOrderHandler) Handle(ctx context.Context, cmd commands.CancelOrde
 		return fmt.Errorf("find order: %w", err)
 	}
 
-	needsRelease := o.RequiresStockRelease()
-
-	if err := o.Cancel(cmd.Reason); err != nil {
-		return fmt.Errorf("cancel order: %w", err)
-	}
-
-	if err := h.repo.Save(ctx, o); err != nil {
-		return fmt.Errorf("save order: %w", err)
+	var needsRelease bool
+	if o.Status() != order.StatusCancelled {
+		needsRelease = o.RequiresStockRelease()
+		if err := o.Cancel(cmd.Reason); err != nil {
+			return fmt.Errorf("cancel order: %w", err)
+		}
+		if err := h.repo.Save(ctx, o); err != nil {
+			return fmt.Errorf("save order: %w", err)
+		}
+	} else {
+		// Already cancelled — infer whether stock was reserved from persisted state.
+		needsRelease = o.FraudReport() != nil || o.PaymentAttempt() > 0
 	}
 
 	if err := h.producer.PublishOrderCancelled(ctx, o, cmd.Reason); err != nil {

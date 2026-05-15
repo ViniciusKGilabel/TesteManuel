@@ -65,4 +65,45 @@ describe('Product Aggregate', () => {
     const product = makeProduct();
     expect(product.equals(product)).toBe(true);
   });
+
+  describe('Product.reconstitute', () => {
+    it('should reconstitute a product from valid persisted state', () => {
+      const product = Product.reconstitute({
+        id: 'prod-abc',
+        name: 'Widget',
+        description: 'A widget',
+        price: Price.create(19.99),
+        stock: Stock.create(50),
+        createdAt: new Date('2026-01-01'),
+      });
+      expect(product.productId).toBe('prod-abc');
+      expect(product.productName).toBe('Widget');
+    });
+
+    it('should throw when reconstituting with empty name', () => {
+      expect(() =>
+        Product.reconstitute({
+          id: 'prod-1',
+          name: '',
+          description: 'desc',
+          price: Price.create(10),
+          stock: Stock.create(1),
+          createdAt: new Date(),
+        }),
+      ).toThrow('Product name cannot be empty');
+    });
+
+    it('should throw when reconstituting with whitespace-only name', () => {
+      expect(() =>
+        Product.reconstitute({
+          id: 'prod-1',
+          name: '   ',
+          description: 'desc',
+          price: Price.create(10),
+          stock: Stock.create(1),
+          createdAt: new Date(),
+        }),
+      ).toThrow('Product name cannot be empty');
+    });
+  });
 });

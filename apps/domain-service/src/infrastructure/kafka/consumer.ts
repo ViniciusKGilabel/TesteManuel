@@ -1,5 +1,5 @@
 import { Kafka, Consumer, EachMessagePayload } from 'kafkajs';
-import { IReserveStockHandler } from '../../application/handlers/ReserveStockHandler';
+import { IReserveStockHandler, ReserveStockResult } from '../../application/handlers/ReserveStockHandler';
 import { IReleaseStockHandler } from '../../application/handlers/ReleaseStockHandler';
 import { IStockProducer } from './producer';
 import { KafkaEnvelope, OrderPlacedPayload, StockReleaseRequestedPayload } from './types';
@@ -9,8 +9,20 @@ import { KafkaEnvelope, OrderPlacedPayload, StockReleaseRequestedPayload } from 
 // release via that event rather than reacting to order.cancelled directly.
 const TOPICS = ['order.placed', 'stock.release.requested'] as const;
 
+const MAX_RESERVATION_CACHE = 10_000;
+
 export class StockConsumer {
   private readonly consumer: Consumer;
+  private readonly processedReservations = new Map<string, ReserveStockResult>();
+
+  private cacheReservation(orderId: string, result: ReserveStockResult): void {
+    if (this.processedReservations.size >= MAX_RESERVATION_CACHE) {
+      // Map preserves insertion order; delete the oldest entry to stay within the cap.
+      const firstKey = this.processedReservations.keys().next().value as string;
+      this.processedReservations.delete(firstKey);
+    }
+    this.processedReservations.set(orderId, result);
+  }
 
   constructor(
     private readonly brokers: string,
@@ -49,10 +61,14 @@ export class StockConsumer {
     switch (topic) {
       case 'order.placed': {
         const p = envelope.payload as OrderPlacedPayload;
-        const result = await this.reserveStockHandler.handle({
-          orderID: p.order_id,
-          items: p.items.map((i) => ({ productId: i.product_id, quantity: i.quantity })),
-        });
+        let result = this.processedReservations.get(p.order_id);
+        if (!result) {
+          result = await this.reserveStockHandler.handle({
+            orderID: p.order_id,
+            items: p.items.map((i) => ({ productId: i.product_id, quantity: i.quantity })),
+          });
+          this.cacheReservation(p.order_id, result);
+        }
         if (result.success) {
           try {
             await this.producer.publishStockReserved(p.order_id);

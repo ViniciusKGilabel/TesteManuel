@@ -52,37 +52,62 @@ class TestFormatContext:
 
 class TestToFraudResponse:
     def test_converts_low_risk(self):
-        data = {
-            "risk_score": 10,
-            "risk_level": "LOW",
-            "narrative": "Normal transaction.",
-            "recommended_action": "APPROVE",
-            "signals_flagged": [],
-            "confidence": 0.95,
-        }
+        data = {"risk_score": 10, "narrative": "Normal transaction.",
+                "signals_flagged": [], "confidence": 0.95}
         resp = _to_fraud_response(data)
         assert isinstance(resp, FraudResponse)
         assert resp.risk_score == 10
         assert resp.risk_level == RiskLevel.LOW
+        assert resp.recommended_action == "APPROVE"
         assert not resp.is_rejected()
 
     def test_converts_critical_risk(self):
-        data = {
-            "risk_score": 90,
-            "risk_level": "CRITICAL",
-            "narrative": "Multiple fraud signals detected.",
-            "recommended_action": "REJECT",
-            "signals_flagged": ["high_frequency", "new_address"],
-            "confidence": 0.98,
-        }
+        data = {"risk_score": 90, "narrative": "Multiple fraud signals.",
+                "signals_flagged": ["high_frequency", "new_address"], "confidence": 0.98}
         resp = _to_fraud_response(data)
         assert resp.risk_level == RiskLevel.CRITICAL
+        assert resp.recommended_action == "REJECT"
         assert resp.is_rejected()
         assert len(resp.signals_flagged) == 2
+        assert resp.manual_review_required is True
+
+    def test_server_overrides_wrong_llm_level(self):
+        """Score 75 = HIGH regardless of what the LLM claims."""
+        data = {"risk_score": 75, "narrative": "Suspicious.", "confidence": 0.88}
+        resp = _to_fraud_response(data)
+        assert resp.risk_level == RiskLevel.HIGH
+        assert resp.recommended_action == "REJECT"
+        assert resp.is_rejected()
+
+    def test_manual_review_forced_for_critical(self):
+        data = {"risk_score": 88, "narrative": "Fraud.", "confidence": 0.99}
+        resp = _to_fraud_response(data)
+        assert resp.manual_review_required is True
+
+    def test_manual_review_false_for_high(self):
+        data = {"risk_score": 70, "narrative": "Suspicious.", "confidence": 0.88}
+        resp = _to_fraud_response(data)
+        assert resp.manual_review_required is False
 
     def test_raises_on_missing_required_fields(self):
         with pytest.raises(ValueError, match="missing required fields"):
             _to_fraud_response({})
+
+    def test_threshold_boundaries(self):
+        cases = [
+            (0,   "LOW",      "APPROVE"),
+            (30,  "LOW",      "APPROVE"),
+            (31,  "MEDIUM",   "APPROVE"),
+            (60,  "MEDIUM",   "APPROVE"),
+            (61,  "HIGH",     "REJECT"),
+            (85,  "HIGH",     "REJECT"),
+            (86,  "CRITICAL", "REJECT"),
+            (100, "CRITICAL", "REJECT"),
+        ]
+        for score, expected_level, expected_action in cases:
+            resp = _to_fraud_response({"risk_score": score, "confidence": 0.9})
+            assert resp.risk_level.value == expected_level, f"score={score}"
+            assert resp.recommended_action == expected_action, f"score={score}"
 
 
 class TestFraudResponseModel:

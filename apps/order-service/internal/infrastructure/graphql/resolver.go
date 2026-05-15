@@ -138,10 +138,14 @@ func (h *Handler) serveMutation(ctx context.Context, w http.ResponseWriter, vars
 		})
 	}
 
+	sig, _ := vars["fraudSignals"].(map[string]interface{})
 	o, err := h.placeOrder.Handle(ctx, commands.PlaceOrder{
-		OrderID: uuid.New().String(),
-		UserID:  userID,
-		Items:   items,
+		OrderID:            uuid.New().String(),
+		UserID:             userID,
+		Items:              items,
+		UserAccountAgeDays: intVal(sig["accountAgeDays"]),
+		CartToOrderSeconds: intVal(sig["cartToOrderSeconds"]),
+		IsNewAddress:       boolVal(sig["isNewAddress"]),
 	})
 	if err != nil {
 		json.NewEncoder(w).Encode(errResponse(err.Error()))
@@ -291,4 +295,9 @@ func intVal(v interface{}) int {
 func int64Val(v interface{}) int64 {
 	f, _ := v.(float64)
 	return int64(f)
+}
+
+func boolVal(v interface{}) bool {
+	b, _ := v.(bool)
+	return b
 }

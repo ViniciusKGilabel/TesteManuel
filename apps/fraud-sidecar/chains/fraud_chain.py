@@ -27,18 +27,38 @@ def _format_context(request: FraudRequest) -> dict:
     }
 
 
+def _score_to_level_and_action(score: int) -> tuple[str, str]:
+    """Derive risk level and recommended action from score using canonical thresholds.
+
+    Server-side enforcement prevents an LLM hallucination (e.g. score=75 but level=MEDIUM)
+    from approving a transaction that should be rejected.
+    """
+    if score <= 30:
+        return "LOW", "APPROVE"
+    elif score <= 60:
+        return "MEDIUM", "APPROVE"
+    elif score <= 85:
+        return "HIGH", "REJECT"
+    else:
+        return "CRITICAL", "REJECT"
+
+
 def _to_fraud_response(data: dict) -> FraudResponse:
-    required = {"risk_score", "risk_level", "recommended_action", "confidence"}
+    required = {"risk_score", "confidence"}
     missing = required - data.keys()
     if missing:
         raise ValueError(f"LLM response missing required fields: {missing}")
+    score = int(data["risk_score"])
+    risk_level, recommended_action = _score_to_level_and_action(score)
+    manual_review = risk_level == "CRITICAL"
     return FraudResponse(
-        risk_score=int(data["risk_score"]),
-        risk_level=RiskLevel(data["risk_level"]),
+        risk_score=score,
+        risk_level=RiskLevel(risk_level),
         narrative=data.get("narrative", ""),
-        recommended_action=data["recommended_action"],
+        recommended_action=recommended_action,
         signals_flagged=data.get("signals_flagged", []),
         confidence=float(data["confidence"]),
+        manual_review_required=manual_review,
     )
 
 

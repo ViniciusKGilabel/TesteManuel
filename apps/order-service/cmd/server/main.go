@@ -80,6 +80,7 @@ func runMigrations(ctx context.Context, pool *pgxpool.Pool) error {
 			updated_at      TIMESTAMPTZ NOT NULL
 		);
 		ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_attempt SMALLINT NOT NULL DEFAULT 0;
+		ALTER TABLE orders ADD COLUMN IF NOT EXISTS fraud_signals JSONB;
 		CREATE INDEX IF NOT EXISTS orders_user_id_idx ON orders (user_id);
 	`)
 	return err

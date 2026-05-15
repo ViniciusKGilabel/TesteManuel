@@ -6,10 +6,10 @@ import { Price } from '../../../domain/product/value-objects/Price';
 import { Stock } from '../../../domain/product/value-objects/Stock';
 
 class MockProductRepository implements IProductRepository {
-  private store = new InMemoryRepository<Product>();
+  private store = new InMemoryRepository<Product>((p: Product) => p.productId);
 
   async save(product: Product): Promise<void> {
-    await this.store.save(product.productId, product);
+    await this.store.save(product);
   }
 
   async findById(id: string): Promise<Product | null> {

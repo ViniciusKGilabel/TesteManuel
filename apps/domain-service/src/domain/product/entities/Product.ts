@@ -50,6 +50,9 @@ export class Product extends AggregateRoot<string> {
   }
 
   static reconstitute(props: ProductProps): Product {
+    if (!props.name || props.name.trim().length === 0) {
+      throw new Error('Product name cannot be empty');
+    }
     return new Product(props);
   }
 
