@@ -80,7 +80,8 @@ export class Cart extends AggregateRoot<string> {
     if (!this.items.has(productId)) {
       throw new Error('Item not found in cart');
     }
-    const existing = this.items.get(productId)!;
+    const existing = this.items.get(productId);
+    if (!existing) throw new Error('Item not found in cart');
     this.items.set(productId, { ...existing, quantity });
     this.updatedAt = new Date();
   }

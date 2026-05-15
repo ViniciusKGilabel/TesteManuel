@@ -6,13 +6,16 @@ import { createAuthContext } from './middleware/authMiddleware';
 
 const port = Number(process.env.PORT ?? 4000);
 
+const subgraphURL = (envVar: string, fallbackPort: number) =>
+  process.env[envVar] ?? `http://localhost:${fallbackPort}/graphql`;
+
 const gateway = new ApolloGateway({
   supergraphSdl: new IntrospectAndCompose({
     subgraphs: [
-      createFederatedServiceConfig('auth-service', 3001),
-      createFederatedServiceConfig('domain-service', 3002),
-      createFederatedServiceConfig('order-service', 3003),
-      createFederatedServiceConfig('wordpress-service', 8080),
+      createFederatedServiceConfig('auth-service', subgraphURL('SUBGRAPH_AUTH_URL', 3001)),
+      createFederatedServiceConfig('domain-service', subgraphURL('SUBGRAPH_DOMAIN_URL', 3002)),
+      createFederatedServiceConfig('order-service', subgraphURL('SUBGRAPH_ORDER_URL', 3003)),
+      createFederatedServiceConfig('wordpress-service', subgraphURL('SUBGRAPH_WORDPRESS_URL', 8080)),
     ],
     pollIntervalInMs: 10000,
   }),

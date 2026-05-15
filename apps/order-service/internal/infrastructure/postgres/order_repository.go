@@ -128,9 +128,9 @@ func scanOrder(row rowScanner) (*order.Order, error) {
 		items = append(items, item)
 	}
 
-	o, err := order.NewOrder(id, userID, items)
+	totalMoney, err := order.NewMoney(totalCents, currency)
 	if err != nil {
-		return nil, fmt.Errorf("reconstruct order: %w", err)
+		return nil, fmt.Errorf("reconstruct total: %w", err)
 	}
 
 	var realFraud *order.FraudReport
@@ -142,55 +142,10 @@ func scanOrder(row rowScanner) (*order.Order, error) {
 		realFraud = &fr
 	}
 
-	if err := advanceToStatus(o, order.Status(status), realFraud); err != nil {
-		return nil, err
-	}
-
-	o.SetPaymentAttempt(paymentAttempt)
-	o.ClearEvents()
-
+	o := order.Reconstitute(id, userID, items, totalMoney, order.Status(status), realFraud, paymentAttempt, createdAt, updatedAt)
 	return o, nil
 }
 
-func advanceToStatus(o *order.Order, target order.Status, fraud *order.FraudReport) error {
-	if target == order.StatusPending || o.Status() == target {
-		return nil
-	}
-	if target == order.StatusCancelled {
-		return o.Cancel("restored from DB")
-	}
-
-	fraudForReplay := order.FraudReport{RecommendedAction: "APPROVE"}
-	if fraud != nil {
-		fraudForReplay = *fraud
-	}
-
-	steps := []struct {
-		to order.Status
-		fn func() error
-	}{
-		{order.StatusStockReserved, o.ReserveStock},
-		{order.StatusFraudChecked, func() error {
-			return o.ApplyFraudCheck(fraudForReplay)
-		}},
-		{order.StatusPaymentRequested, o.RequestPayment},
-		{order.StatusConfirmed, o.Confirm},
-	}
-
-	for _, step := range steps {
-		if o.Status() == target {
-			break
-		}
-		if err := step.fn(); err != nil {
-			return fmt.Errorf("advance to %s: %w", step.to, err)
-		}
-	}
-
-	if o.Status() != target {
-		return fmt.Errorf("could not advance order to status %s: stuck at %s", target, o.Status())
-	}
-	return nil
-}
 
 func marshalItems(items []order.OrderItem) ([]byte, error) {
 	rows := make([]itemRow, 0, len(items))

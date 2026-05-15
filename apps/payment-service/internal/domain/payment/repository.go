@@ -3,6 +3,7 @@ package payment
 import (
 	"context"
 	"errors"
+	"time"
 )
 
 // ProviderResult is the outcome of a single payment-provider charge attempt.
@@ -42,6 +43,10 @@ type IdempotencyStore interface {
 	Insert(ctx context.Context, key string) error
 	Update(ctx context.Context, key string, state IdempotencyState) error
 	Get(ctx context.Context, key string) (IdempotencyState, bool, error)
+	// RefreshStaleProcessingLock resets a PROCESSING key whose updated_at is older
+	// than ttl, allowing the caller to retry a stuck payment. Returns true if the
+	// key was replaced (caller may proceed), false if the key is still fresh.
+	RefreshStaleProcessingLock(ctx context.Context, key string, ttl time.Duration) (bool, error)
 }
 
 // UnitOfWork atomically persists a terminal payment state change together with

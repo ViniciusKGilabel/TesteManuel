@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/teste-manuel/payment-service/internal/application/commands"
 	"github.com/teste-manuel/payment-service/internal/application/handlers"
@@ -52,12 +53,16 @@ func (r *inMemoryPaymentRepo) FindByIdempotencyKey(_ context.Context, key string
 }
 
 type inMemoryIdempotencyStore struct {
-	mu   sync.Mutex
-	data map[string]payment.IdempotencyState
+	mu         sync.Mutex
+	data       map[string]payment.IdempotencyState
+	timestamps map[string]time.Time
 }
 
 func newIdempotencyStore() *inMemoryIdempotencyStore {
-	return &inMemoryIdempotencyStore{data: make(map[string]payment.IdempotencyState)}
+	return &inMemoryIdempotencyStore{
+		data:       make(map[string]payment.IdempotencyState),
+		timestamps: make(map[string]time.Time),
+	}
 }
 
 func (s *inMemoryIdempotencyStore) Get(_ context.Context, key string) (payment.IdempotencyState, bool, error) {
@@ -74,6 +79,7 @@ func (s *inMemoryIdempotencyStore) Insert(_ context.Context, key string) error {
 		return payment.ErrAlreadyInserted
 	}
 	s.data[key] = payment.IdempotencyProcessing
+	s.timestamps[key] = time.Now()
 	return nil
 }
 
@@ -81,7 +87,23 @@ func (s *inMemoryIdempotencyStore) Update(_ context.Context, key string, state p
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.data[key] = state
+	s.timestamps[key] = time.Now()
 	return nil
+}
+
+func (s *inMemoryIdempotencyStore) RefreshStaleProcessingLock(_ context.Context, key string, ttl time.Duration) (bool, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	state, ok := s.data[key]
+	if !ok || state != payment.IdempotencyProcessing {
+		return false, nil
+	}
+	ts, hasTS := s.timestamps[key]
+	if !hasTS || time.Since(ts) < ttl {
+		return false, nil
+	}
+	s.timestamps[key] = time.Now()
+	return true, nil
 }
 
 // inMemoryUnitOfWork simulates atomic payment state persistence without a real DB transaction.

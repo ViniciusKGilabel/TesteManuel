@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/teste-manuel/payment-service/internal/application/commands"
 	"github.com/teste-manuel/payment-service/internal/domain/payment"
@@ -49,10 +50,23 @@ func (h *ProcessPaymentHandler) Handle(ctx context.Context, cmd commands.Process
 		case payment.IdempotencyCompleted:
 			return nil // already charged — safe no-op
 		case payment.IdempotencyProcessing:
-			return ErrAlreadyProcessing
+			replaced, err := h.idempotencyStore.RefreshStaleProcessingLock(ctx, key, 5*time.Minute)
+			if err != nil {
+				return fmt.Errorf("ttl check for stale processing key: %w", err)
+			}
+			if !replaced {
+				return ErrAlreadyProcessing
+			}
+			// Stale PROCESSING entry was reset — fall through to re-process.
 		case payment.IdempotencyFailed:
-			// FAILED is terminal for this attempt; payment.failed was already published.
-			// The saga retries with attempt+1, which produces a new key (NOT_FOUND path).
+			// Re-publish payment.failed so the saga can react if it missed the first
+			// delivery (e.g. consumer restart). The saga must be idempotent on this event.
+			// If the payment record is missing (edge case), skip re-publish silently.
+			if p, lookupErr := h.repo.FindByIdempotencyKey(ctx, key); lookupErr == nil && p != nil {
+				if err := h.producer.PublishPaymentFailed(ctx, p); err != nil {
+					return fmt.Errorf("re-publish payment.failed: %w", err)
+				}
+			}
 			return nil
 		}
 	} else {

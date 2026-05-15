@@ -35,7 +35,7 @@ type Order struct {
 	paymentAttempt int
 	createdAt      time.Time
 	updatedAt      time.Time
-	events         []interface{}
+	events         []DomainEvent
 }
 
 func NewOrder(id, userID string, items []OrderItem) (*Order, error) {
@@ -65,11 +65,11 @@ func NewOrder(id, userID string, items []OrderItem) (*Order, error) {
 		updatedAt: now,
 	}
 	o.events = append(o.events, OrderPlaced{
-		OrderID:   id,
-		UserID:    userID,
-		Items:     items,
-		Total:     total,
-		OccuredAt: now,
+		OrderID:    id,
+		UserID:     userID,
+		Items:      items,
+		Total:      total,
+		occurredAt: now,
 	})
 	return o, nil
 }
@@ -109,7 +109,7 @@ func (o *Order) Confirm() error {
 	}
 	o.status = StatusConfirmed
 	o.updatedAt = time.Now().UTC()
-	o.events = append(o.events, OrderConfirmed{OrderID: o.id, OccuredAt: o.updatedAt})
+	o.events = append(o.events, OrderConfirmed{OrderID: o.id, occurredAt: o.updatedAt})
 	return nil
 }
 
@@ -119,8 +119,24 @@ func (o *Order) Cancel(reason string) error {
 	}
 	o.status = StatusCancelled
 	o.updatedAt = time.Now().UTC()
-	o.events = append(o.events, OrderCancelled{OrderID: o.id, Reason: reason, OccuredAt: o.updatedAt})
+	o.events = append(o.events, OrderCancelled{OrderID: o.id, Reason: reason, occurredAt: o.updatedAt})
 	return nil
+}
+
+// Reconstitute rebuilds an Order from persisted state, bypassing state-machine guards.
+// Use only in repository implementations to restore DB-backed orders.
+func Reconstitute(id, userID string, items []OrderItem, total Money, status Status, fraudReport *FraudReport, paymentAttempt int, createdAt, updatedAt time.Time) *Order {
+	return &Order{
+		id:             id,
+		userID:         userID,
+		items:          items,
+		total:          total,
+		status:         status,
+		fraudReport:    fraudReport,
+		paymentAttempt: paymentAttempt,
+		createdAt:      createdAt,
+		updatedAt:      updatedAt,
+	}
 }
 
 func (o *Order) ID() string                { return o.id }
@@ -131,10 +147,9 @@ func (o *Order) Status() Status            { return o.status }
 func (o *Order) FraudReport() *FraudReport { return o.fraudReport }
 func (o *Order) CreatedAt() time.Time      { return o.createdAt }
 func (o *Order) UpdatedAt() time.Time      { return o.updatedAt }
-func (o *Order) Events() []interface{}     { return o.events }
+func (o *Order) Events() []DomainEvent     { return o.events }
 func (o *Order) ClearEvents()              { o.events = nil }
 func (o *Order) PaymentAttempt() int       { return o.paymentAttempt }
-func (o *Order) SetPaymentAttempt(attempt int) { o.paymentAttempt = attempt }
 
 // RequiresStockRelease reports whether cancelling this order must also release reserved stock.
 // Stock is reserved once the order moves past PENDING; it must be freed on cancellation.

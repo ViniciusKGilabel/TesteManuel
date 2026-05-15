@@ -58,6 +58,10 @@ func (h *StockReservedHandler) Handle(ctx context.Context, cmd commands.HandleSt
 	}
 
 	if fraudResp.RiskLevel == "HIGH" || fraudResp.RiskLevel == "CRITICAL" {
+		if err := h.producer.PublishFraudCheckCompleted(ctx, o, fraudResp); err != nil {
+			return fmt.Errorf("publish fraud.check.completed (rejected): %w", err)
+		}
+		requiresRelease := o.RequiresStockRelease()
 		if err := o.Cancel(fmt.Sprintf("fraud rejected: %s risk", fraudResp.RiskLevel)); err != nil {
 			return fmt.Errorf("cancel order (fraud): %w", err)
 		}
@@ -67,8 +71,10 @@ func (h *StockReservedHandler) Handle(ctx context.Context, cmd commands.HandleSt
 		if err := h.producer.PublishOrderCancelled(ctx, o, fmt.Sprintf("fraud:%s", fraudResp.RiskLevel)); err != nil {
 			return fmt.Errorf("publish order.cancelled: %w", err)
 		}
-		if err := h.producer.PublishStockReleaseRequested(ctx, o); err != nil {
-			return fmt.Errorf("publish stock.release.requested: %w", err)
+		if requiresRelease {
+			if err := h.producer.PublishStockReleaseRequested(ctx, o); err != nil {
+				return fmt.Errorf("publish stock.release.requested: %w", err)
+			}
 		}
 		if err := h.producer.PublishSagaState(ctx, o); err != nil {
 			log.Printf("[saga-state] publish failed order=%s: %v", o.ID(), err)

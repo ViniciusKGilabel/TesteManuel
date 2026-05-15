@@ -39,9 +39,10 @@ type paymentRequestedPayload struct {
 
 func (c *Consumer) Start(ctx context.Context) error {
 	kc, err := kafka.NewConsumer(&kafka.ConfigMap{
-		"bootstrap.servers": c.brokers,
-		"group.id":          c.groupID,
-		"auto.offset.reset": "earliest",
+		"bootstrap.servers":  c.brokers,
+		"group.id":           c.groupID,
+		"auto.offset.reset":  "earliest",
+		"enable.auto.commit": false,
 	})
 	if err != nil {
 		return fmt.Errorf("create kafka consumer: %w", err)
@@ -79,7 +80,11 @@ func (c *Consumer) Start(ctx context.Context) error {
 		}
 
 		if err := c.Dispatch(ctx, []byte(envelope.Payload)); err != nil {
-			log.Printf("[kafka] dispatch error: %v", err)
+			log.Printf("[kafka] dispatch error offset=%d: %v — offset not committed, will retry", msg.TopicPartition.Offset, err)
+			continue
+		}
+		if _, err := kc.CommitMessage(msg); err != nil {
+			log.Printf("[kafka] commit error offset=%d: %v", msg.TopicPartition.Offset, err)
 		}
 	}
 }

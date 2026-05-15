@@ -56,9 +56,10 @@ type stockReservedPayload struct {
 
 func (c *Consumer) Start(ctx context.Context) error {
 	kc, err := kafka.NewConsumer(&kafka.ConfigMap{
-		"bootstrap.servers": c.brokers,
-		"group.id":          c.groupID,
-		"auto.offset.reset": "earliest",
+		"bootstrap.servers":  c.brokers,
+		"group.id":           c.groupID,
+		"auto.offset.reset":  "earliest",
+		"enable.auto.commit": false,
 	})
 	if err != nil {
 		return fmt.Errorf("create kafka consumer: %w", err)
@@ -95,7 +96,11 @@ func (c *Consumer) Start(ctx context.Context) error {
 
 		topic := *msg.TopicPartition.Topic
 		if err := c.Dispatch(ctx, topic, msg.Value); err != nil {
-			log.Printf("[kafka] dispatch error topic=%s: %v", topic, err)
+			log.Printf("[kafka] dispatch error topic=%s offset=%d: %v — offset not committed, will retry", topic, msg.TopicPartition.Offset, err)
+			continue
+		}
+		if _, err := kc.CommitMessage(msg); err != nil {
+			log.Printf("[kafka] commit error topic=%s offset=%d: %v", topic, msg.TopicPartition.Offset, err)
 		}
 	}
 }

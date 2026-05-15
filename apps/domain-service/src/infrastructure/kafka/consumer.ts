@@ -4,6 +4,9 @@ import { IReleaseStockHandler } from '../../application/handlers/ReleaseStockHan
 import { IStockProducer } from './producer';
 import { KafkaEnvelope, OrderPlacedPayload, StockReleaseRequestedPayload } from './types';
 
+// order.cancelled is intentionally omitted: order-service always pairs it with
+// stock.release.requested when stock was reserved, so this consumer handles stock
+// release via that event rather than reacting to order.cancelled directly.
 const TOPICS = ['order.placed', 'stock.release.requested'] as const;
 
 export class StockConsumer {
@@ -31,11 +34,7 @@ export class StockConsumer {
     await this.consumer.run({
       eachMessage: async ({ topic, message }: EachMessagePayload) => {
         if (!message.value) return;
-        try {
-          await this.dispatch(topic, message.value);
-        } catch (err) {
-          console.error(`[kafka] dispatch error topic=${topic} offset=${message.offset}`, err);
-        }
+        await this.dispatch(topic, message.value);
       },
     });
   }

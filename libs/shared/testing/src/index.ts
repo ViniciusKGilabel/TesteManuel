@@ -1,4 +1,4 @@
-export class InMemoryRepository<T extends any> {
+export class InMemoryRepository<T> {
   private items: Map<string, T> = new Map();
 
   async save(id: string, item: T): Promise<void> {
@@ -22,14 +22,16 @@ export class InMemoryRepository<T extends any> {
   }
 }
 
-export class MockDomainEventPublisher {
-  private events: any[] = [];
+import { DomainEvent } from '@teste-manuel/domain';
 
-  publish(event: any): void {
+export class MockDomainEventPublisher {
+  private events: DomainEvent[] = [];
+
+  publish(event: DomainEvent): void {
     this.events.push(event);
   }
 
-  getEvents(): any[] {
+  getEvents(): DomainEvent[] {
     return this.events;
   }
 

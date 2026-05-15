@@ -24,7 +24,7 @@ type Payment struct {
 	failureReason  string
 	createdAt      time.Time
 	updatedAt      time.Time
-	events         []interface{}
+	events         []DomainEvent
 }
 
 func NewPayment(id, orderID, userID, idempotencyKey string, amountCents int64, currency string) (*Payment, error) {
@@ -61,9 +61,9 @@ func (p *Payment) Complete() error {
 	p.status = StatusCompleted
 	p.updatedAt = time.Now().UTC()
 	p.events = append(p.events, PaymentProcessed{
-		PaymentID: p.id,
-		OrderID:   p.orderID,
-		OccuredAt: p.updatedAt,
+		PaymentID:  p.id,
+		OrderID:    p.orderID,
+		occurredAt: p.updatedAt,
 	})
 	return nil
 }
@@ -76,10 +76,10 @@ func (p *Payment) Fail(reason string) error {
 	p.failureReason = reason
 	p.updatedAt = time.Now().UTC()
 	p.events = append(p.events, PaymentFailed{
-		PaymentID: p.id,
-		OrderID:   p.orderID,
-		Reason:    reason,
-		OccuredAt: p.updatedAt,
+		PaymentID:  p.id,
+		OrderID:    p.orderID,
+		Reason:     reason,
+		occurredAt: p.updatedAt,
 	})
 	return nil
 }
@@ -105,5 +105,5 @@ func (p *Payment) IdempotencyKey() string { return p.idempotencyKey }
 func (p *Payment) Status() Status         { return p.status }
 func (p *Payment) FailureReason() string  { return p.failureReason }
 func (p *Payment) CreatedAt() time.Time   { return p.createdAt }
-func (p *Payment) Events() []interface{}  { return p.events }
+func (p *Payment) Events() []DomainEvent  { return p.events }
 func (p *Payment) ClearEvents()           { p.events = nil }

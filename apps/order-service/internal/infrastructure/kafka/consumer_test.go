@@ -169,7 +169,7 @@ func TestConsumer_Dispatch(t *testing.T) {
 
 	t.Run("payment.failed routes to CancelOrderHandler and cancels order", func(t *testing.T) {
 		repo := newInMemoryRepo()
-		pendingOrder(t, repo, "ord-3")
+		paymentRequestedOrder(t, repo, "ord-3")
 		c := buildConsumer(t, repo, srv.URL)
 
 		data := event(t, "payment.failed", map[string]interface{}{"order_id": "ord-3", "reason": "insufficient funds"})

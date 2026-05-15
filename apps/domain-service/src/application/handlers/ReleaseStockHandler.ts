@@ -14,6 +14,10 @@ export interface IReleaseStockHandler {
   handle(command: ReleaseStockCommand): Promise<void>;
 }
 
+const log = {
+  warn: (msg: string) => console.warn(`[ReleaseStockHandler] ${msg}`),
+};
+
 export class ReleaseStockHandler implements IReleaseStockHandler {
   constructor(private readonly productRepository: IProductRepository) {}
 
@@ -21,7 +25,7 @@ export class ReleaseStockHandler implements IReleaseStockHandler {
     for (const item of command.items) {
       const product = await this.productRepository.findById(item.productId);
       if (!product) {
-        console.warn(`[release-stock] product ${item.productId} not found, skipping`);
+        log.warn(`product ${item.productId} not found, skipping release for order ${command.orderID}`);
         continue;
       }
       product.replenishStock(item.quantity);

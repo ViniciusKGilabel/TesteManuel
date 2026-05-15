@@ -44,10 +44,10 @@ export abstract class AggregateRoot<T> extends Entity<T> {
   }
 }
 
-export interface IRepository<T extends AggregateRoot<any>> {
+export interface IRepository<T extends AggregateRoot<ID>, ID = string> {
   save(aggregate: T): Promise<void>;
-  findById(id: string): Promise<T | null>;
-  delete(id: string): Promise<void>;
+  findById(id: ID): Promise<T | null>;
+  delete(id: ID): Promise<void>;
 }
 
 export abstract class DomainEvent {
