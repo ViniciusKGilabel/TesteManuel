@@ -1,3 +1,5 @@
+import asyncio
+
 from langchain_anthropic import ChatAnthropic
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables import RunnableLambda
@@ -79,8 +81,8 @@ def build_chain(llm=None):
     return chain
 
 
-async def analyze(request: FraudRequest, chain=None) -> FraudResponse:
+async def analyze(request: FraudRequest, chain=None, timeout: float = 25.0) -> FraudResponse:
     if chain is None:
         chain = build_chain()
-    result = await chain.ainvoke(request)
+    result = await asyncio.wait_for(chain.ainvoke(request), timeout=timeout)
     return result

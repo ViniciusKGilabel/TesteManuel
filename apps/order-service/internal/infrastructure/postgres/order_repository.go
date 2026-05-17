@@ -39,13 +39,14 @@ func (r *OrderRepository) Save(ctx context.Context, o *order.Order) error {
 	}
 
 	_, err = r.pool.Exec(ctx, `
-		INSERT INTO orders (id, user_id, items, total_cents, currency, status, fraud_report, fraud_signals, payment_attempt, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+		INSERT INTO orders (id, user_id, items, total_cents, currency, status, fraud_report, fraud_signals, payment_attempt, stock_reserved, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		ON CONFLICT (id) DO UPDATE SET
 			status          = EXCLUDED.status,
 			fraud_report    = EXCLUDED.fraud_report,
 			fraud_signals   = EXCLUDED.fraud_signals,
 			payment_attempt = EXCLUDED.payment_attempt,
+			stock_reserved  = EXCLUDED.stock_reserved,
 			updated_at      = EXCLUDED.updated_at
 	`,
 		o.ID(),
@@ -57,6 +58,7 @@ func (r *OrderRepository) Save(ctx context.Context, o *order.Order) error {
 		fraudJSON,
 		signalsJSON,
 		o.PaymentAttempt(),
+		o.StockReserved(),
 		o.CreatedAt(),
 		o.UpdatedAt(),
 	)
@@ -68,7 +70,7 @@ func (r *OrderRepository) Save(ctx context.Context, o *order.Order) error {
 
 func (r *OrderRepository) FindByID(ctx context.Context, id string) (*order.Order, error) {
 	row := r.pool.QueryRow(ctx, `
-		SELECT id, user_id, items, total_cents, currency, status, fraud_report, fraud_signals, payment_attempt, created_at, updated_at
+		SELECT id, user_id, items, total_cents, currency, status, fraud_report, fraud_signals, payment_attempt, stock_reserved, created_at, updated_at
 		FROM orders WHERE id = $1
 	`, id)
 
@@ -77,7 +79,7 @@ func (r *OrderRepository) FindByID(ctx context.Context, id string) (*order.Order
 
 func (r *OrderRepository) FindByUserID(ctx context.Context, userID string) ([]*order.Order, error) {
 	rows, err := r.pool.Query(ctx, `
-		SELECT id, user_id, items, total_cents, currency, status, fraud_report, fraud_signals, payment_attempt, created_at, updated_at
+		SELECT id, user_id, items, total_cents, currency, status, fraud_report, fraud_signals, payment_attempt, stock_reserved, created_at, updated_at
 		FROM orders WHERE user_id = $1 ORDER BY created_at DESC
 	`, userID)
 	if err != nil {
@@ -115,10 +117,11 @@ func scanOrder(row rowScanner) (*order.Order, error) {
 		fraudJSON                    []byte
 		signalsJSON                  []byte
 		paymentAttempt               int
+		stockReserved                bool
 		createdAt, updatedAt         time.Time
 	)
 
-	if err := row.Scan(&id, &userID, &itemsJSON, &totalCents, &currency, &status, &fraudJSON, &signalsJSON, &paymentAttempt, &createdAt, &updatedAt); err != nil {
+	if err := row.Scan(&id, &userID, &itemsJSON, &totalCents, &currency, &status, &fraudJSON, &signalsJSON, &paymentAttempt, &stockReserved, &createdAt, &updatedAt); err != nil {
 		return nil, fmt.Errorf("scan order: %w", err)
 	}
 
@@ -157,7 +160,7 @@ func scanOrder(row rowScanner) (*order.Order, error) {
 		}
 	}
 
-	o := order.Reconstitute(id, userID, items, totalMoney, order.Status(status), realFraud, signals, paymentAttempt, createdAt, updatedAt)
+	o := order.Reconstitute(id, userID, items, totalMoney, order.Status(status), realFraud, signals, paymentAttempt, stockReserved, createdAt, updatedAt)
 	return o, nil
 }
 

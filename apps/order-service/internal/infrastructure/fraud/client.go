@@ -5,11 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"time"
 
 	"github.com/teste-manuel/order-service/internal/application/handlers"
 )
+
+const maxResponseBytes = 1 << 20 // 1 MiB
 
 type analyzeRequest struct {
 	OrderID            string        `json:"order_id"`
@@ -100,7 +103,7 @@ func (c *Client) Analyze(ctx context.Context, req handlers.FraudAnalysisRequest)
 	}
 
 	var result analyzeResponse
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+	if err := json.NewDecoder(io.LimitReader(resp.Body, maxResponseBytes)).Decode(&result); err != nil {
 		return nil, fmt.Errorf("decode response: %w", err)
 	}
 

@@ -170,6 +170,7 @@ func (o *Order) UpdatedAt() time.Time        { return o.updatedAt }
 func (o *Order) Events() []DomainEvent       { return o.events }
 func (o *Order) ClearEvents()                { o.events = nil }
 func (o *Order) PaymentAttempt() int         { return o.paymentAttempt }
+func (o *Order) StockReserved() bool         { return o.stockReserved }
 
 // RequiresStockRelease reports whether cancelling this order must also release reserved stock.
 // Stock is reserved once the order moves past PENDING; it must be freed on cancellation.

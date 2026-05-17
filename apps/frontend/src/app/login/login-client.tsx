@@ -49,6 +49,8 @@ export default function LoginPage() {
         setSuccess('Conta criada! Faça o login para continuar.');
         setMode('login');
       }
+    } catch {
+      setErrorMsg('Não foi possível conectar ao servidor. Tente novamente.');
     } finally {
       setLoading(false);
     }

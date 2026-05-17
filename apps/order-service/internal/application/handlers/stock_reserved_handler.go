@@ -79,7 +79,10 @@ func (h *StockReservedHandler) Handle(ctx context.Context, cmd commands.HandleSt
 		return nil
 	}
 
-	if fraudResp.RiskLevel == "HIGH" || fraudResp.RiskLevel == "CRITICAL" {
+	switch fraudResp.RiskLevel {
+	case "LOW", "MEDIUM":
+		// approved — fall through to payment
+	case "HIGH", "CRITICAL":
 		if err := h.producer.PublishFraudCheckCompleted(ctx, o, fraudResp); err != nil {
 			return fmt.Errorf("publish fraud.check.completed (rejected): %w", err)
 		}
@@ -102,6 +105,9 @@ func (h *StockReservedHandler) Handle(ctx context.Context, cmd commands.HandleSt
 			log.Printf("[saga-state] publish failed order=%s: %v", o.ID(), err)
 		}
 		return nil
+	default:
+		// Unknown risk level: fail closed — do not approve unknown outcomes.
+		return fmt.Errorf("fraud check returned unrecognised risk level %q for order %s", fraudResp.RiskLevel, o.ID())
 	}
 
 	if err := o.RequestPayment(); err != nil {
