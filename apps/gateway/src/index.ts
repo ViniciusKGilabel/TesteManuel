@@ -12,7 +12,8 @@ const subgraphURL = (envVar: string, fallbackPort: number) =>
 const gateway = new ApolloGateway({
   supergraphSdl: new IntrospectAndCompose({
     subgraphs: [
-      createFederatedServiceConfig('auth-service', subgraphURL('SUBGRAPH_AUTH_URL', 3001)),
+      // auth-service is now a BetterAuth REST service at :3001/api/auth/*
+      // Authentication goes directly from the client → auth-service, not through this gateway.
       createFederatedServiceConfig('domain-service', subgraphURL('SUBGRAPH_DOMAIN_URL', 3002)),
       createFederatedServiceConfig('order-service', subgraphURL('SUBGRAPH_ORDER_URL', 3003)),
       createFederatedServiceConfig('wordpress-service', subgraphURL('SUBGRAPH_WORDPRESS_URL', 8080)),

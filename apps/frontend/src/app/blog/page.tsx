@@ -1,3 +1,3 @@
 export const dynamic = 'force-dynamic';
 
-export { default } from './home-client';
+export { default } from './blog-client';
