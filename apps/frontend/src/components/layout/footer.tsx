@@ -17,8 +17,8 @@ export function Footer() {
               Plataforma de e-commerce moderna com GraphQL Federation, DDD e arquitetura de microsserviços.
             </p>
             <div className="flex gap-3 pt-1">
-              {[Github, Twitter, Instagram].map((Icon, i) => (
-                <button key={i} className="h-8 w-8 rounded-full border flex items-center justify-center hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
+              {([['GitHub', Github], ['Twitter', Twitter], ['Instagram', Instagram]] as const).map(([label, Icon]) => (
+                <button key={label} type="button" aria-label={label} className="h-8 w-8 rounded-full border flex items-center justify-center hover:bg-muted transition-colors text-muted-foreground hover:text-foreground">
                   <Icon className="h-3.5 w-3.5" />
                 </button>
               ))}

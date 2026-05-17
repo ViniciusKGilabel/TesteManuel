@@ -1,6 +1,5 @@
 'use client';
 
-
 import Link from 'next/link';
 import { ArrowRight, Shield, Truck, RefreshCw, Star, Zap } from 'lucide-react';
 import { useQuery } from '@apollo/client/react';
@@ -38,7 +37,7 @@ export default function HomePage() {
   const featured = data?.products?.slice(0, 4) ?? [];
 
   return (
-    <div>
+    <>
       {/* Hero */}
       <section className="relative overflow-hidden bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 text-white">
         <div className="absolute inset-0 opacity-30">
@@ -199,6 +198,6 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-    </div>
+    </>
   );
 }

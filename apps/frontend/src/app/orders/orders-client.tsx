@@ -1,6 +1,5 @@
 'use client';
 
-
 import { useQuery } from '@apollo/client/react';
 import { Package, Clock, CheckCircle2, XCircle, Truck, ChevronDown, ShoppingBag, ArrowRight, Lock } from 'lucide-react';
 import Link from 'next/link';
