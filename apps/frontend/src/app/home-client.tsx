@@ -2,19 +2,12 @@
 
 import Link from 'next/link';
 import { ArrowRight, Shield, Truck, RefreshCw, Star } from 'lucide-react';
-import { useQuery } from '@apollo/client/react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ProductCard, ProductCardSkeleton } from '@/components/products/product-card';
-import { GET_PRODUCTS } from '@/graphql/queries/products';
+import { fetchWooProducts, type WooProduct } from '@/lib/woocommerce';
 
-interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  currency: string;
-  stock: number;
-}
+type Product = WooProduct;
 
 const CATEGORIES = [
   { label: 'Eletrônicos', emoji: '📱' },
@@ -33,8 +26,14 @@ const FEATURES = [
 ];
 
 export default function HomePage() {
-  const { data, loading } = useQuery<{ products: Product[] }>(GET_PRODUCTS);
-  const featured = data?.products?.slice(0, 4) ?? [];
+  const [featured, setFeatured] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchWooProducts()
+      .then((products) => setFeatured(products.slice(0, 4)))
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
     <>

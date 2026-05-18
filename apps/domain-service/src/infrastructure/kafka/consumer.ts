@@ -92,10 +92,7 @@ export class StockConsumer {
 
       case 'stock.release.requested': {
         const p = envelope.payload as StockReleaseRequestedPayload;
-        await this.releaseStockHandler.handle({
-          orderID: p.order_id,
-          items: p.items.map((i) => ({ productId: i.product_id, quantity: i.quantity })),
-        });
+        await this.releaseStockHandler.handle({ orderID: p.order_id });
         break;
       }
 

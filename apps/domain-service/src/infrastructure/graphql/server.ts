@@ -3,11 +3,11 @@ import { buildSubgraphSchema } from '@apollo/subgraph';
 import { startStandaloneServer } from '@apollo/server/standalone';
 import { typeDefs } from './schema';
 import { createResolvers } from './resolvers';
-import { IProductRepository } from '../../domain/product/IProductRepository';
+import { IWooCommercePort } from '../../application/ports/IWooCommercePort';
 
-export async function startGraphQLServer(repo: IProductRepository, port: number): Promise<void> {
+export async function startGraphQLServer(woo: IWooCommercePort, port: number): Promise<void> {
   const server = new ApolloServer({
-    schema: buildSubgraphSchema({ typeDefs, resolvers: createResolvers(repo) }),
+    schema: buildSubgraphSchema({ typeDefs, resolvers: createResolvers(woo) }),
   });
 
   const { url } = await startStandaloneServer(server, { listen: { port } });

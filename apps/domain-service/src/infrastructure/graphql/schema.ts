@@ -16,5 +16,6 @@ export const typeDefs = parse(`#graphql
   type Query {
     products: [Product!]!
     product(id: ID!): Product
+    _health: Boolean
   }
 `);

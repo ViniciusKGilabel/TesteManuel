@@ -1,178 +1,142 @@
-import { InMemoryRepository } from '@teste-manuel/shared-testing';
 import { ReserveStockHandler } from '../../../application/handlers/ReserveStockHandler';
-import { IProductRepository } from '../../../domain/product/IProductRepository';
-import { Product } from '../../../domain/product/entities/Product';
-import { Price } from '../../../domain/product/value-objects/Price';
-import { Stock } from '../../../domain/product/value-objects/Stock';
+import { IWooCommercePort, WooProductData } from '../../../application/ports/IWooCommercePort';
+import { IStockReservationRepository, StockReservationItem } from '../../../domain/stock/IStockReservationRepository';
 
-class MockProductRepository implements IProductRepository {
-  private store = new InMemoryRepository<Product>((p: Product) => p.productId);
+class MockWooCommerce implements IWooCommercePort {
+  private stocks = new Map<string, number>();
+  readonly stockUpdates: Array<{ productId: string; delta: number }> = [];
 
-  async save(product: Product): Promise<void> {
-    await this.store.save(product);
+  setStock(productId: string, qty: number) {
+    this.stocks.set(productId, qty);
   }
 
-  async findById(id: string): Promise<Product | null> {
-    return this.store.findById(id);
+  async getStockQuantity(productId: string): Promise<number> {
+    return this.stocks.get(productId) ?? 0;
   }
 
-  async delete(id: string): Promise<void> {
-    return this.store.delete(id);
-  }
+  async getProducts(): Promise<WooProductData[]> { return []; }
+  async getProduct(_id: string): Promise<WooProductData | null> { return null; }
 
-  async findAll(): Promise<Product[]> {
-    return this.store.findAll();
-  }
-
-  async findByName(name: string): Promise<Product | null> {
-    const all = await this.store.findAll();
-    return all.find((p) => p.productName === name) ?? null;
+  async updateStock(productId: string, delta: number): Promise<boolean> {
+    const current = this.stocks.get(productId) ?? 0;
+    const next = current + delta;
+    if (next < 0) return false;
+    this.stocks.set(productId, next);
+    this.stockUpdates.push({ productId, delta });
+    return true;
   }
 }
 
-function makeProduct(id: string, stock: number): Product {
-  return Product.reconstitute({
-    id,
-    name: 'Widget',
-    description: 'desc',
-    price: Price.create(10),
-    stock: Stock.create(stock),
-    createdAt: new Date(),
-  });
+class MockReservationRepository implements IStockReservationRepository {
+  private reservations: StockReservationItem[] = [];
+
+  async getByOrderId(orderId: string): Promise<StockReservationItem[]> {
+    return this.reservations.filter((r) => r.orderId === orderId);
+  }
+
+  async reserve(items: StockReservationItem[]): Promise<void> {
+    this.reservations.push(...items);
+  }
+
+  async release(orderId: string): Promise<void> {
+    this.reservations = this.reservations.filter((r) => r.orderId !== orderId);
+  }
+
+  getAll() {
+    return this.reservations;
+  }
 }
 
 describe('ReserveStockHandler', () => {
-  let repo: MockProductRepository;
+  let woo: MockWooCommerce;
+  let repo: MockReservationRepository;
   let handler: ReserveStockHandler;
 
   beforeEach(() => {
-    repo = new MockProductRepository();
-    handler = new ReserveStockHandler(repo);
+    woo = new MockWooCommerce();
+    repo = new MockReservationRepository();
+    handler = new ReserveStockHandler(woo, repo);
   });
 
-  it('reserves stock for a single item and returns success', async () => {
-    await repo.save(makeProduct('prod-1', 100));
-
-    const result = await handler.handle({
-      orderID: 'ord-1',
-      items: [{ productId: 'prod-1', quantity: 10 }],
-    });
-
+  it('reserves stock and decrements WooCommerce for a single item', async () => {
+    woo.setStock('1', 100);
+    const result = await handler.handle({ orderID: 'ord-1', items: [{ productId: '1', quantity: 10 }] });
     expect(result.success).toBe(true);
-    const saved = await repo.findById('prod-1');
-    expect(saved!.productStock.quantity).toBe(90);
+    expect(woo.stockUpdates).toEqual([{ productId: '1', delta: -10 }]);
+    expect(repo.getAll()).toHaveLength(1);
+    expect(repo.getAll()[0]).toMatchObject({ orderId: 'ord-1', productId: '1', quantity: 10 });
   });
 
   it('reserves stock for multiple items', async () => {
-    await repo.save(makeProduct('prod-1', 50));
-    await repo.save(makeProduct('prod-2', 30));
-
+    woo.setStock('1', 50);
+    woo.setStock('2', 30);
     const result = await handler.handle({
       orderID: 'ord-1',
-      items: [
-        { productId: 'prod-1', quantity: 5 },
-        { productId: 'prod-2', quantity: 3 },
-      ],
+      items: [{ productId: '1', quantity: 5 }, { productId: '2', quantity: 3 }],
     });
-
     expect(result.success).toBe(true);
-    expect((await repo.findById('prod-1'))!.productStock.quantity).toBe(45);
-    expect((await repo.findById('prod-2'))!.productStock.quantity).toBe(27);
+    expect(woo.stockUpdates).toHaveLength(2);
+    expect(repo.getAll()).toHaveLength(2);
   });
 
-  it('returns failure when product is not found', async () => {
-    const result = await handler.handle({
-      orderID: 'ord-1',
-      items: [{ productId: 'missing-prod', quantity: 1 }],
-    });
-
+  it('returns failure when product has no stock in WooCommerce', async () => {
+    const result = await handler.handle({ orderID: 'ord-1', items: [{ productId: '99', quantity: 1 }] });
     expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.reason).toContain('missing-prod');
-    }
+    if (!result.success) expect(result.reason).toContain('99');
+    expect(woo.stockUpdates).toHaveLength(0);
   });
 
   it('returns failure when stock is insufficient', async () => {
-    await repo.save(makeProduct('prod-1', 5));
-
-    const result = await handler.handle({
-      orderID: 'ord-1',
-      items: [{ productId: 'prod-1', quantity: 10 }],
-    });
-
+    woo.setStock('1', 5);
+    const result = await handler.handle({ orderID: 'ord-1', items: [{ productId: '1', quantity: 10 }] });
     expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.reason).toBe('Insufficient stock');
-    }
+    expect(woo.stockUpdates).toHaveLength(0);
   });
 
-  it('does not persist the reservation when stock is insufficient', async () => {
-    await repo.save(makeProduct('prod-1', 5));
-
-    await handler.handle({
-      orderID: 'ord-1',
-      items: [{ productId: 'prod-1', quantity: 10 }],
-    });
-
-    const saved = await repo.findById('prod-1');
-    expect(saved!.productStock.quantity).toBe(5);
+  it('does not create any reservation when stock is insufficient', async () => {
+    woo.setStock('1', 5);
+    await handler.handle({ orderID: 'ord-1', items: [{ productId: '1', quantity: 10 }] });
+    expect(repo.getAll()).toHaveLength(0);
   });
 
-  it('rolls back item 1 reservation when item 2 has insufficient stock', async () => {
-    await repo.save(makeProduct('prod-1', 100));
-    await repo.save(makeProduct('prod-2', 1));
-
+  it('rolls back WooCommerce decrements when a later item fails', async () => {
+    woo.setStock('1', 100);
+    woo.setStock('2', 1);
     const result = await handler.handle({
       orderID: 'ord-1',
-      items: [
-        { productId: 'prod-1', quantity: 10 },
-        { productId: 'prod-2', quantity: 5 },
-      ],
+      items: [{ productId: '1', quantity: 10 }, { productId: '2', quantity: 5 }],
     });
-
     expect(result.success).toBe(false);
-    expect((await repo.findById('prod-1'))!.productStock.quantity).toBe(100);
-    expect((await repo.findById('prod-2'))!.productStock.quantity).toBe(1);
+    expect(repo.getAll()).toHaveLength(0);
+    // product 1 was decremented then rolled back: net delta = 0
+    const net1 = woo.stockUpdates
+      .filter((u) => u.productId === '1')
+      .reduce((s, u) => s + u.delta, 0);
+    expect(net1).toBe(0);
   });
 
-  it('rolls back all prior reservations when a later product is not found', async () => {
-    await repo.save(makeProduct('prod-1', 50));
-    await repo.save(makeProduct('prod-2', 30));
-
-    const result = await handler.handle({
-      orderID: 'ord-1',
-      items: [
-        { productId: 'prod-1', quantity: 5 },
-        { productId: 'prod-2', quantity: 3 },
-        { productId: 'missing-prod', quantity: 1 },
-      ],
-    });
-
-    expect(result.success).toBe(false);
-    if (!result.success) {
-      expect(result.reason).toContain('missing-prod');
-    }
-    expect((await repo.findById('prod-1'))!.productStock.quantity).toBe(50);
-    expect((await repo.findById('prod-2'))!.productStock.quantity).toBe(30);
-  });
-
-  it('returns success with no rollback when all items reserve correctly', async () => {
-    await repo.save(makeProduct('prod-1', 20));
-    await repo.save(makeProduct('prod-2', 20));
-    await repo.save(makeProduct('prod-3', 20));
-
-    const result = await handler.handle({
-      orderID: 'ord-1',
-      items: [
-        { productId: 'prod-1', quantity: 5 },
-        { productId: 'prod-2', quantity: 5 },
-        { productId: 'prod-3', quantity: 5 },
-      ],
-    });
-
+  it('is idempotent — second call for same order returns success without double-decrement', async () => {
+    woo.setStock('1', 100);
+    await handler.handle({ orderID: 'ord-1', items: [{ productId: '1', quantity: 10 }] });
+    const result = await handler.handle({ orderID: 'ord-1', items: [{ productId: '1', quantity: 10 }] });
     expect(result.success).toBe(true);
-    expect((await repo.findById('prod-1'))!.productStock.quantity).toBe(15);
-    expect((await repo.findById('prod-2'))!.productStock.quantity).toBe(15);
-    expect((await repo.findById('prod-3'))!.productStock.quantity).toBe(15);
+    // WooCommerce should only have been decremented once
+    expect(woo.stockUpdates.filter((u) => u.delta < 0)).toHaveLength(1);
+  });
+
+  it('returns success when all items have sufficient stock', async () => {
+    woo.setStock('1', 20);
+    woo.setStock('2', 20);
+    woo.setStock('3', 20);
+    const result = await handler.handle({
+      orderID: 'ord-1',
+      items: [
+        { productId: '1', quantity: 5 },
+        { productId: '2', quantity: 5 },
+        { productId: '3', quantity: 5 },
+      ],
+    });
+    expect(result.success).toBe(true);
+    expect(repo.getAll()).toHaveLength(3);
   });
 });

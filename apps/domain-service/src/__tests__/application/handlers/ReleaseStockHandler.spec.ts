@@ -1,102 +1,77 @@
-import { InMemoryRepository } from '@teste-manuel/shared-testing';
 import { ReleaseStockHandler } from '../../../application/handlers/ReleaseStockHandler';
-import { IProductRepository } from '../../../domain/product/IProductRepository';
-import { Product } from '../../../domain/product/entities/Product';
-import { Price } from '../../../domain/product/value-objects/Price';
-import { Stock } from '../../../domain/product/value-objects/Stock';
+import { IWooCommercePort, WooProductData } from '../../../application/ports/IWooCommercePort';
+import { IStockReservationRepository, StockReservationItem } from '../../../domain/stock/IStockReservationRepository';
 
-class MockProductRepository implements IProductRepository {
-  private store = new InMemoryRepository<Product>((p: Product) => p.productId);
+class MockWooCommerce implements IWooCommercePort {
+  readonly stockUpdates: Array<{ productId: string; delta: number }> = [];
 
-  async save(product: Product): Promise<void> {
-    await this.store.save(product);
-  }
+  async getStockQuantity(_id: string): Promise<number> { return 0; }
+  async getProducts(): Promise<WooProductData[]> { return []; }
+  async getProduct(_id: string): Promise<WooProductData | null> { return null; }
 
-  async findById(id: string): Promise<Product | null> {
-    return this.store.findById(id);
-  }
-
-  async delete(id: string): Promise<void> {
-    return this.store.delete(id);
-  }
-
-  async findAll(): Promise<Product[]> {
-    return this.store.findAll();
-  }
-
-  async findByName(name: string): Promise<Product | null> {
-    const all = await this.store.findAll();
-    return all.find((p) => p.productName === name) ?? null;
+  async updateStock(productId: string, delta: number): Promise<boolean> {
+    this.stockUpdates.push({ productId, delta });
+    return true;
   }
 }
 
-function makeProduct(id: string, stock: number): Product {
-  return Product.reconstitute({
-    id,
-    name: 'Widget',
-    description: 'desc',
-    price: Price.create(10),
-    stock: Stock.create(stock),
-    createdAt: new Date(),
-  });
+class MockReservationRepository implements IStockReservationRepository {
+  private reservations: StockReservationItem[] = [];
+
+  async getByOrderId(orderId: string): Promise<StockReservationItem[]> {
+    return this.reservations.filter((r) => r.orderId === orderId);
+  }
+
+  async reserve(items: StockReservationItem[]): Promise<void> {
+    this.reservations.push(...items);
+  }
+
+  async release(orderId: string): Promise<void> {
+    this.reservations = this.reservations.filter((r) => r.orderId !== orderId);
+  }
+
+  getAll() {
+    return this.reservations;
+  }
 }
 
 describe('ReleaseStockHandler', () => {
-  let repo: MockProductRepository;
+  let woo: MockWooCommerce;
+  let repo: MockReservationRepository;
   let handler: ReleaseStockHandler;
 
   beforeEach(() => {
-    repo = new MockProductRepository();
-    handler = new ReleaseStockHandler(repo);
+    woo = new MockWooCommerce();
+    repo = new MockReservationRepository();
+    handler = new ReleaseStockHandler(woo, repo);
   });
 
-  it('replenishes stock for a single item', async () => {
-    await repo.save(makeProduct('prod-1', 40));
+  it('restores WooCommerce stock and removes reservations for the given order', async () => {
+    await repo.reserve([
+      { orderId: 'ord-1', productId: '1', quantity: 5 },
+      { orderId: 'ord-1', productId: '2', quantity: 3 },
+    ]);
+    await handler.handle({ orderID: 'ord-1' });
 
-    await handler.handle({
-      orderID: 'ord-1',
-      items: [{ productId: 'prod-1', quantity: 10 }],
-    });
-
-    const saved = await repo.findById('prod-1');
-    expect(saved!.productStock.quantity).toBe(50);
+    expect(woo.stockUpdates).toEqual([
+      { productId: '1', delta: 5 },
+      { productId: '2', delta: 3 },
+    ]);
+    expect(repo.getAll()).toHaveLength(0);
   });
 
-  it('replenishes stock for multiple items', async () => {
-    await repo.save(makeProduct('prod-1', 10));
-    await repo.save(makeProduct('prod-2', 20));
-
-    await handler.handle({
-      orderID: 'ord-1',
-      items: [
-        { productId: 'prod-1', quantity: 5 },
-        { productId: 'prod-2', quantity: 8 },
-      ],
-    });
-
-    expect((await repo.findById('prod-1'))!.productStock.quantity).toBe(15);
-    expect((await repo.findById('prod-2'))!.productStock.quantity).toBe(28);
+  it('does not affect reservations from other orders', async () => {
+    await repo.reserve([
+      { orderId: 'ord-1', productId: '1', quantity: 5 },
+      { orderId: 'ord-2', productId: '1', quantity: 3 },
+    ]);
+    await handler.handle({ orderID: 'ord-1' });
+    expect(repo.getAll()).toHaveLength(1);
+    expect(repo.getAll()[0].orderId).toBe('ord-2');
   });
 
-  it('skips missing products without throwing', async () => {
-    await handler.handle({
-      orderID: 'ord-1',
-      items: [{ productId: 'gone', quantity: 5 }],
-    });
-    // no error — compensation is best-effort
-  });
-
-  it('processes remaining items even when one is missing', async () => {
-    await repo.save(makeProduct('prod-2', 10));
-
-    await handler.handle({
-      orderID: 'ord-1',
-      items: [
-        { productId: 'missing', quantity: 5 },
-        { productId: 'prod-2', quantity: 3 },
-      ],
-    });
-
-    expect((await repo.findById('prod-2'))!.productStock.quantity).toBe(13);
+  it('handles release of non-existent order without error', async () => {
+    await expect(handler.handle({ orderID: 'ord-999' })).resolves.toBeUndefined();
+    expect(woo.stockUpdates).toHaveLength(0);
   });
 });

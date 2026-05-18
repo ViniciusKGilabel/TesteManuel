@@ -152,10 +152,7 @@ describe('StockConsumer.dispatch', () => {
       );
 
       expect(release.received).toHaveLength(1);
-      expect(release.received[0]).toMatchObject({
-        orderID: 'ord-5',
-        items: [{ productId: 'prod-2', quantity: 3 }],
-      });
+      expect(release.received[0]).toMatchObject({ orderID: 'ord-5' });
     });
   });
 

@@ -1,35 +1,29 @@
-import { IProductRepository } from '../../domain/product/IProductRepository';
-
-export interface ReleaseStockItem {
-  productId: string;
-  quantity: number;
-}
+import { IWooCommercePort } from '../ports/IWooCommercePort';
+import { IStockReservationRepository } from '../../domain/stock/IStockReservationRepository';
 
 export interface ReleaseStockCommand {
   orderID: string;
-  items: ReleaseStockItem[];
 }
 
 export interface IReleaseStockHandler {
   handle(command: ReleaseStockCommand): Promise<void>;
 }
 
-const log = {
-  warn: (msg: string) => console.warn(`[ReleaseStockHandler] ${msg}`),
-};
-
 export class ReleaseStockHandler implements IReleaseStockHandler {
-  constructor(private readonly productRepository: IProductRepository) {}
+  constructor(
+    private readonly wooCommerce: IWooCommercePort,
+    private readonly reservations: IStockReservationRepository,
+  ) {}
 
   async handle(command: ReleaseStockCommand): Promise<void> {
-    for (const item of command.items) {
-      const product = await this.productRepository.findById(item.productId);
-      if (!product) {
-        log.warn(`product ${item.productId} not found, skipping release for order ${command.orderID}`);
-        continue;
-      }
-      product.replenishStock(item.quantity);
-      await this.productRepository.save(product);
+    const items = await this.reservations.getByOrderId(command.orderID);
+    if (items.length === 0) return; // already released or never reserved
+
+    // Restore WooCommerce stock before deleting the reservation record.
+    for (const item of items) {
+      await this.wooCommerce.updateStock(item.productId, item.quantity);
     }
+
+    await this.reservations.release(command.orderID);
   }
 }

@@ -149,6 +149,9 @@ services:
       PORT: 3002
       DATABASE_URL: postgresql://domain_user:domain_pass@domain-db:5432/domain_db
       KAFKA_BROKERS: kafka:29092
+      WOO_GRAPHQL_URL: http://wordpress:80/graphql
+      WC_INTERNAL_SECRET: ${WC_INTERNAL_SECRET:-dev-internal-secret-32chars!!!!!}
+      WC_STOCK_UPDATE_URL: http://wordpress:80/wp-json/tm/v1/stock/update
     depends_on:
       domain-db:
         condition: service_healthy
@@ -239,6 +242,7 @@ services:
       WP_ADMIN_USER: admin
       WP_ADMIN_PASS: admin_pass
       WP_ADMIN_EMAIL: admin@example.com
+      WC_INTERNAL_SECRET: ${WC_INTERNAL_SECRET:-dev-internal-secret-32chars!!!!!}
     depends_on:
       wp-db:
         condition: service_healthy

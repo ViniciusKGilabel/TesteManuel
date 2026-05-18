@@ -5,7 +5,7 @@ export interface StockReservationItem {
 }
 
 export interface IStockReservationRepository {
-  getTotalReserved(productId: string): Promise<number>;
+  getByOrderId(orderId: string): Promise<StockReservationItem[]>;
   reserve(items: StockReservationItem[]): Promise<void>;
   release(orderId: string): Promise<void>;
 }

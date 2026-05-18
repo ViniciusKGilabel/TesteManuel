@@ -1,16 +1,14 @@
-import { IProductRepository } from '../../domain/product/IProductRepository';
-import { ProductDTO } from '../../application/dto/ProductDTO';
+import { IWooCommercePort } from '../../application/ports/IWooCommercePort';
 
-export function createResolvers(repo: IProductRepository) {
+export function createResolvers(woo: IWooCommercePort) {
   return {
     Query: {
-      products: () => repo.findAll().then((ps) => ps.map((p) => new ProductDTO(p))),
-      product: (_: unknown, { id }: { id: string }) =>
-        repo.findById(id).then((p) => (p ? new ProductDTO(p) : null)),
+      products: () => woo.getProducts(),
+      product: (_: unknown, { id }: { id: string }) => woo.getProduct(id),
+      _health: () => true,
     },
     Product: {
-      __resolveReference: ({ id }: { id: string }) =>
-        repo.findById(id).then((p) => (p ? new ProductDTO(p) : null)),
+      __resolveReference: ({ id }: { id: string }) => woo.getProduct(id),
     },
   };
 }

@@ -13,19 +13,17 @@ export class PostgresStockReservationRepository implements IStockReservationRepo
         reserved_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         PRIMARY KEY (order_id, product_id)
       );
-      CREATE INDEX IF NOT EXISTS stock_reservations_product_idx
-        ON stock_reservations (product_id);
     `);
   }
 
-  async getTotalReserved(productId: string): Promise<number> {
-    const { rows } = await this.pool.query<{ total: string }>(
-      `SELECT COALESCE(SUM(quantity), 0) AS total
+  async getByOrderId(orderId: string): Promise<StockReservationItem[]> {
+    const { rows } = await this.pool.query<StockReservationItem>(
+      `SELECT order_id AS "orderId", product_id AS "productId", quantity
          FROM stock_reservations
-        WHERE product_id = $1`,
-      [productId],
+        WHERE order_id = $1`,
+      [orderId],
     );
-    return parseInt(rows[0].total, 10);
+    return rows;
   }
 
   async reserve(items: StockReservationItem[]): Promise<void> {

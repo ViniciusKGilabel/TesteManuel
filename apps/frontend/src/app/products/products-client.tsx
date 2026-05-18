@@ -1,22 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import { useQuery } from '@apollo/client/react';
+import { useState, useEffect } from 'react';
 import { Search, SlidersHorizontal, Package } from 'lucide-react';
-import { GET_PRODUCTS } from '@/graphql/queries/products';
 import { ProductCard, ProductCardSkeleton } from '@/components/products/product-card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { fetchWooProducts, type WooProduct } from '@/lib/woocommerce';
 
-interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: number;
-  currency: string;
-  stock: number;
-}
+type Product = WooProduct;
 
 const SORT_OPTIONS = [
   { label: 'Relevância', value: 'relevance' },
@@ -31,10 +23,21 @@ export default function ProductsPage() {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('relevance');
   const [activeFilter, setActiveFilter] = useState('Todos');
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  const { data, loading, error } = useQuery<{ products: Product[] }>(GET_PRODUCTS);
+  useEffect(() => {
+    fetchWooProducts()
+      .then((products) => {
+        if (products.length === 0) setError(true);
+        setAllProducts(products);
+      })
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
+  }, []);
 
-  const filtered = (data?.products ?? [])
+  const filtered = allProducts
     .filter((p) => {
       const q = search.toLowerCase();
       const matches = p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q);
@@ -53,7 +56,7 @@ export default function ProductsPage() {
       <div className="mb-8">
         <p className="text-xs font-medium tracking-widest text-[#71717a] uppercase mb-2">Catálogo</p>
         <h1 className="text-4xl font-light tracking-tight">Todos os produtos</h1>
-        {data && (
+        {!loading && allProducts.length > 0 && (
           <p className="text-[#71717a] mt-2 text-sm">
             {filtered.length} {filtered.length === 1 ? 'produto encontrado' : 'produtos encontrados'}
           </p>

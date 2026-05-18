@@ -6,8 +6,9 @@ RUN curl -o /usr/local/bin/wp https://raw.githubusercontent.com/wp-cli/builds/gh
     && apt-get update && apt-get install -y less default-mysql-client \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy federation plugin
+# Copy local plugins
 COPY plugins/graphql-federation /var/www/html/wp-content/plugins/graphql-federation
+COPY plugins/tm-internal-api /var/www/html/wp-content/plugins/tm-internal-api
 
 # Copy setup script
 COPY setup.sh /usr/local/bin/wp-setup.sh
