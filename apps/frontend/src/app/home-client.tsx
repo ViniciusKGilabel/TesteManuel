@@ -101,8 +101,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Categories */}
-      <section className="container py-16">
+      {/* Categories  not implemented */}
+      {/* <section className="container ">
         <div className="flex items-end justify-between mb-8">
           <div>
             <p className="text-xs font-medium tracking-widest text-[#71717a] uppercase mb-2">Explorar</p>
@@ -128,10 +128,10 @@ export default function HomePage() {
             </Link>
           ))}
         </div>
-      </section>
+      </section> */}
 
       {/* Featured Products */}
-      <section className="container pb-16">
+      <section className="container pb-16 py-16">
         <div className="flex items-end justify-between mb-8">
           <div>
             <p className="text-xs font-medium tracking-widest text-[#71717a] uppercase mb-2">Destaques</p>
