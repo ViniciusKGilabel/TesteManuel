@@ -1,4 +1,4 @@
-FROM wordpress:6.4-apache
+FROM wordpress:6.8-apache
 
 # Install WP-CLI
 RUN curl -o /usr/local/bin/wp https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar \
@@ -15,9 +15,7 @@ RUN chmod +x /usr/local/bin/wp-setup.sh
 
 EXPOSE 80
 
-# Start apache in background, run WP-CLI setup once DB is ready, then keep apache in foreground
 CMD bash -c "\
     apache2-foreground &\
-    sleep 10 &&\
-    wp-setup.sh &&\
+    /usr/local/bin/wp-setup.sh ;\
     wait"
