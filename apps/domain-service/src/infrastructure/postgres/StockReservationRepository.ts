@@ -1,5 +1,6 @@
 import { Pool, PoolClient } from 'pg';
-import { IStockReservationRepository, StockReservation } from '../../domain/stock/IStockReservationRepository';
+import { IStockReservationRepository } from '../../domain/stock/IStockReservationRepository';
+import { StockReservation } from '../../domain/stock/entities/StockReservation';
 
 export class PostgresStockReservationRepository implements IStockReservationRepository {
   constructor(private readonly pool: Pool) {}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Package, Clock, CheckCircle2, XCircle, Truck, ChevronDown } from 'lucide-react';
+import { Package, Clock, CheckCircle2, XCircle, Truck, ChevronDown, ShieldCheck, CreditCard } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { formatPrice, formatDate } from '@/lib/utils';
 
@@ -23,11 +23,13 @@ export interface Order {
 type BadgeVariant = 'warning' | 'info' | 'purple' | 'success' | 'destructive' | 'outline';
 
 const STATUS_CONFIG: Record<string, { label: string; variant: BadgeVariant; icon: React.ElementType }> = {
-  PENDING:   { label: 'Pendente',   variant: 'warning',     icon: Clock },
-  CONFIRMED: { label: 'Confirmado', variant: 'info',        icon: CheckCircle2 },
-  SHIPPED:   { label: 'Enviado',    variant: 'purple',      icon: Truck },
-  DELIVERED: { label: 'Entregue',   variant: 'success',     icon: CheckCircle2 },
-  CANCELLED: { label: 'Cancelado',  variant: 'destructive', icon: XCircle },
+  PENDING:           { label: 'Pendente',             variant: 'warning',     icon: Clock },
+  STOCK_RESERVED:    { label: 'Estoque reservado',    variant: 'info',        icon: Package },
+  FRAUD_CHECKED:     { label: 'Antifraude aprovado',  variant: 'info',        icon: ShieldCheck },
+  PAYMENT_REQUESTED: { label: 'Pagamento processando',variant: 'purple',      icon: CreditCard },
+  CONFIRMED:         { label: 'Confirmado',            variant: 'success',     icon: CheckCircle2 },
+  SHIPPED:           { label: 'Enviado',               variant: 'purple',      icon: Truck },
+  CANCELLED:         { label: 'Cancelado',             variant: 'destructive', icon: XCircle },
 };
 
 export function OrderCard({ order }: { order: Order }) {
@@ -75,7 +77,7 @@ export function OrderCard({ order }: { order: Order }) {
                     <Package className="h-5 w-5 text-[#a1a1aa]" strokeWidth={1.5} />
                   </div>
                   <div>
-                    <p className="text-sm font-mono font-medium">{item.productId.slice(0, 12)}…</p>
+                    <p className="text-sm font-medium">Produto #{item.productId}</p>
                     <p className="text-xs text-muted-foreground">{item.quantity}x · {formatPrice(item.unitPrice)} cada</p>
                   </div>
                 </div>
