@@ -19,7 +19,6 @@ export class ReleaseStockHandler implements IReleaseStockHandler {
     const items = await this.reservations.getByOrderId(command.orderID);
     if (items.length === 0) return; // already released or never reserved
 
-    // Restore WooCommerce stock before deleting the reservation record.
     for (const item of items) {
       await this.wooCommerce.updateStock(item.productId, item.quantity);
     }

@@ -1,5 +1,6 @@
 import { IWooCommercePort } from '../ports/IWooCommercePort';
 import { IStockReservationRepository } from '../../domain/stock/IStockReservationRepository';
+import { StockReservation } from '../../domain/stock/entities/StockReservation';
 
 export interface ReserveStockItem {
   productId: string;
@@ -33,7 +34,6 @@ export class ReserveStockHandler implements IReserveStockHandler {
     }
 
     // Check WooCommerce stock for all items before committing anything.
-    // WooCommerce is the source of truth — no local double-counting needed.
     for (const item of command.items) {
       const available = await this.wooCommerce.getStockQuantity(item.productId);
       if (available < item.quantity) {
@@ -44,12 +44,11 @@ export class ReserveStockHandler implements IReserveStockHandler {
       }
     }
 
-    // Decrement WooCommerce stock for each item.
+    // Decrement WooCommerce stock item-by-item with rollback on any failure.
     const decremented: Array<{ productId: string; quantity: number }> = [];
     for (const item of command.items) {
       const ok = await this.wooCommerce.updateStock(item.productId, -item.quantity);
       if (!ok) {
-        // Roll back already-decremented items.
         for (const d of decremented) {
           await this.wooCommerce.updateStock(d.productId, d.quantity);
         }
@@ -61,14 +60,11 @@ export class ReserveStockHandler implements IReserveStockHandler {
       decremented.push(item);
     }
 
-    // Record reservation for idempotency and release tracking.
-    await this.reservations.reserve(
-      command.items.map((i) => ({
-        orderId: command.orderID,
-        productId: i.productId,
-        quantity: i.quantity,
-      })),
+    // Persist reservation entities for idempotency and release tracking.
+    const entities = command.items.map((i) =>
+      StockReservation.create(command.orderID, i.productId, i.quantity),
     );
+    await this.reservations.reserve(entities);
 
     return { success: true };
   }

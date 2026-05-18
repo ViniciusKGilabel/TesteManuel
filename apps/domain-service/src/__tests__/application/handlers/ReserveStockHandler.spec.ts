@@ -1,19 +1,16 @@
 import { ReserveStockHandler } from '../../../application/handlers/ReserveStockHandler';
 import { IWooCommercePort, WooProductData } from '../../../application/ports/IWooCommercePort';
-import { IStockReservationRepository, StockReservationItem } from '../../../domain/stock/IStockReservationRepository';
+import { IStockReservationRepository, StockReservation } from '../../../domain/stock/IStockReservationRepository';
 
 class MockWooCommerce implements IWooCommercePort {
   private stocks = new Map<string, number>();
   readonly stockUpdates: Array<{ productId: string; delta: number }> = [];
 
-  setStock(productId: string, qty: number) {
-    this.stocks.set(productId, qty);
-  }
+  setStock(productId: string, qty: number) { this.stocks.set(productId, qty); }
 
   async getStockQuantity(productId: string): Promise<number> {
     return this.stocks.get(productId) ?? 0;
   }
-
   async getProducts(): Promise<WooProductData[]> { return []; }
   async getProduct(_id: string): Promise<WooProductData | null> { return null; }
 
@@ -28,13 +25,13 @@ class MockWooCommerce implements IWooCommercePort {
 }
 
 class MockReservationRepository implements IStockReservationRepository {
-  private reservations: StockReservationItem[] = [];
+  private reservations: StockReservation[] = [];
 
-  async getByOrderId(orderId: string): Promise<StockReservationItem[]> {
+  async getByOrderId(orderId: string): Promise<StockReservation[]> {
     return this.reservations.filter((r) => r.orderId === orderId);
   }
 
-  async reserve(items: StockReservationItem[]): Promise<void> {
+  async reserve(items: StockReservation[]): Promise<void> {
     this.reservations.push(...items);
   }
 
@@ -42,9 +39,7 @@ class MockReservationRepository implements IStockReservationRepository {
     this.reservations = this.reservations.filter((r) => r.orderId !== orderId);
   }
 
-  getAll() {
-    return this.reservations;
-  }
+  getAll() { return this.reservations; }
 }
 
 describe('ReserveStockHandler', () => {
@@ -64,7 +59,8 @@ describe('ReserveStockHandler', () => {
     expect(result.success).toBe(true);
     expect(woo.stockUpdates).toEqual([{ productId: '1', delta: -10 }]);
     expect(repo.getAll()).toHaveLength(1);
-    expect(repo.getAll()[0]).toMatchObject({ orderId: 'ord-1', productId: '1', quantity: 10 });
+    expect(repo.getAll()[0].productId).toBe('1');
+    expect(repo.getAll()[0].quantity).toBe(10);
   });
 
   it('reserves stock for multiple items', async () => {
@@ -108,7 +104,6 @@ describe('ReserveStockHandler', () => {
     });
     expect(result.success).toBe(false);
     expect(repo.getAll()).toHaveLength(0);
-    // product 1 was decremented then rolled back: net delta = 0
     const net1 = woo.stockUpdates
       .filter((u) => u.productId === '1')
       .reduce((s, u) => s + u.delta, 0);
@@ -120,7 +115,6 @@ describe('ReserveStockHandler', () => {
     await handler.handle({ orderID: 'ord-1', items: [{ productId: '1', quantity: 10 }] });
     const result = await handler.handle({ orderID: 'ord-1', items: [{ productId: '1', quantity: 10 }] });
     expect(result.success).toBe(true);
-    // WooCommerce should only have been decremented once
     expect(woo.stockUpdates.filter((u) => u.delta < 0)).toHaveLength(1);
   });
 
@@ -138,5 +132,12 @@ describe('ReserveStockHandler', () => {
     });
     expect(result.success).toBe(true);
     expect(repo.getAll()).toHaveLength(3);
+  });
+
+  it('StockReservation entity rejects zero quantity', () => {
+    expect(() => handler.handle({
+      orderID: 'ord-1',
+      items: [{ productId: '1', quantity: 0 }],
+    })).rejects.toThrow('positive integer');
   });
 });

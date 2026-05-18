@@ -1,5 +1,5 @@
 import { Pool, PoolClient } from 'pg';
-import { IStockReservationRepository, StockReservationItem } from '../../domain/stock/IStockReservationRepository';
+import { IStockReservationRepository, StockReservation } from '../../domain/stock/IStockReservationRepository';
 
 export class PostgresStockReservationRepository implements IStockReservationRepository {
   constructor(private readonly pool: Pool) {}
@@ -16,27 +16,34 @@ export class PostgresStockReservationRepository implements IStockReservationRepo
     `);
   }
 
-  async getByOrderId(orderId: string): Promise<StockReservationItem[]> {
-    const { rows } = await this.pool.query<StockReservationItem>(
-      `SELECT order_id AS "orderId", product_id AS "productId", quantity
+  async getByOrderId(orderId: string): Promise<StockReservation[]> {
+    const { rows } = await this.pool.query<{
+      order_id: string;
+      product_id: string;
+      quantity: number;
+      reserved_at: Date;
+    }>(
+      `SELECT order_id, product_id, quantity, reserved_at
          FROM stock_reservations
         WHERE order_id = $1`,
       [orderId],
     );
-    return rows;
+    return rows.map((r) =>
+      StockReservation.reconstitute(r.order_id, r.product_id, r.quantity, r.reserved_at),
+    );
   }
 
-  async reserve(items: StockReservationItem[]): Promise<void> {
-    if (items.length === 0) return;
+  async reserve(reservations: StockReservation[]): Promise<void> {
+    if (reservations.length === 0) return;
     const client: PoolClient = await this.pool.connect();
     try {
       await client.query('BEGIN');
-      for (const item of items) {
+      for (const r of reservations) {
         await client.query(
           `INSERT INTO stock_reservations (order_id, product_id, quantity)
            VALUES ($1, $2, $3)
            ON CONFLICT (order_id, product_id) DO UPDATE SET quantity = EXCLUDED.quantity`,
-          [item.orderId, item.productId, item.quantity],
+          [r.orderId, r.productId, r.quantity],
         );
       }
       await client.query('COMMIT');

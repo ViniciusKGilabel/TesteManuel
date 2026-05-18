@@ -1,11 +1,9 @@
-export interface StockReservationItem {
-  orderId: string;
-  productId: string;
-  quantity: number;
-}
+import { StockReservation } from './entities/StockReservation';
+
+export type { StockReservation };
 
 export interface IStockReservationRepository {
-  getByOrderId(orderId: string): Promise<StockReservationItem[]>;
-  reserve(items: StockReservationItem[]): Promise<void>;
+  getByOrderId(orderId: string): Promise<StockReservation[]>;
+  reserve(reservations: StockReservation[]): Promise<void>;
   release(orderId: string): Promise<void>;
 }

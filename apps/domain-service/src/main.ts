@@ -1,9 +1,11 @@
 import 'reflect-metadata';
 import { Pool } from 'pg';
 import { PostgresStockReservationRepository } from './infrastructure/postgres/StockReservationRepository';
+import { PostgresCartRepository } from './infrastructure/postgres/CartRepository';
 import { WooCommerceGraphQLAdapter } from './infrastructure/woocommerce/WooCommerceGraphQLAdapter';
 import { ReserveStockHandler } from './application/handlers/ReserveStockHandler';
 import { ReleaseStockHandler } from './application/handlers/ReleaseStockHandler';
+import { AddToCartHandler } from './application/handlers/AddToCartHandler';
 import { StockProducer } from './infrastructure/kafka/producer';
 import { StockConsumer } from './infrastructure/kafka/consumer';
 import { startGraphQLServer } from './infrastructure/graphql/server';
@@ -22,9 +24,13 @@ async function main(): Promise<void> {
   const stockReservations = new PostgresStockReservationRepository(pool);
   await stockReservations.migrate();
 
+  const cartRepository = new PostgresCartRepository(pool);
+  await cartRepository.migrate();
+
   const wooCommerce = new WooCommerceGraphQLAdapter(wooUrl);
 
-  await startGraphQLServer(wooCommerce, port);
+  const addToCartHandler = new AddToCartHandler(cartRepository, wooCommerce);
+  await startGraphQLServer(wooCommerce, addToCartHandler, port);
 
   const producer = new StockProducer(brokers);
   await producer.connect();
