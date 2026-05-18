@@ -1,13 +1,21 @@
 import { AddToCartCommand } from '../commands/AddToCartCommand';
 import { Cart } from '../../domain/cart/entities/Cart';
 import { ICartRepository } from '../../domain/cart/ICartRepository';
+import { IWooCommercePort } from '../ports/IWooCommercePort';
 
 export class AddToCartHandler {
-  constructor(private cartRepository: ICartRepository) {}
+  constructor(
+    private readonly cartRepository: ICartRepository,
+    private readonly wooCommerce: IWooCommercePort,
+  ) {}
 
   async handle(command: AddToCartCommand): Promise<Cart> {
-    let cart = await this.cartRepository.findByUserId(command.userId);
+    const product = await this.wooCommerce.getProduct(command.productId);
+    if (!product) {
+      throw new Error(`Product ${command.productId} not found`);
+    }
 
+    let cart = await this.cartRepository.findByUserId(command.userId);
     if (!cart) {
       cart = Cart.create(command.userId);
     }

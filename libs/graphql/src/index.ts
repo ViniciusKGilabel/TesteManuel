@@ -6,10 +6,10 @@ export const federationDirectives = `
   directive @link(url: String!, as: String, for: String, import: [String]) repeatable on SCHEMA
 `;
 
-export function createFederatedServiceConfig(serviceName: string, port: number) {
+export function createFederatedServiceConfig(serviceName: string, url: string) {
   return {
     name: serviceName,
-    url: `http://localhost:${port}/graphql`,
+    url,
   };
 }
 

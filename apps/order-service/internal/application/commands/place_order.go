@@ -8,7 +8,10 @@ type OrderItemInput struct {
 }
 
 type PlaceOrder struct {
-	OrderID string
-	UserID  string
-	Items   []OrderItemInput
+	OrderID            string
+	UserID             string
+	Items              []OrderItemInput
+	UserAccountAgeDays int
+	CartToOrderSeconds int
+	IsNewAddress       bool
 }

@@ -1,5 +1,7 @@
+import asyncio
 import os
 from fastapi import FastAPI, HTTPException
+from pydantic import ValidationError
 from models.fraud_request import FraudRequest
 from models.fraud_response import FraudResponse
 from chains.fraud_chain import analyze
@@ -17,8 +19,12 @@ async def analyze_order(request: FraudRequest) -> FraudResponse:
     try:
         result = await analyze(request)
         return result
+    except ValidationError as exc:
+        raise HTTPException(status_code=422, detail=exc.errors()) from exc
+    except asyncio.TimeoutError as exc:
+        raise HTTPException(status_code=503, detail="fraud analysis timed out") from exc
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        raise HTTPException(status_code=500, detail="internal error") from exc
 
 
 if __name__ == "__main__":

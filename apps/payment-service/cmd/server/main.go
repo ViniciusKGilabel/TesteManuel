@@ -29,10 +29,15 @@ func main() {
 	brokers := mustEnv("KAFKA_BROKERS")
 	repo := postgres.NewPaymentRepository(pool)
 	store := postgres.NewIdempotencyStore(pool)
+	uow := postgres.NewUnitOfWork(pool)
 	provider := mock_provider.New()
-	producer := kafka.NewProducer(brokers)
+	producer, err := kafka.NewProducer(brokers)
+	if err != nil {
+		log.Fatalf("kafka producer: %v", err)
+	}
+	defer producer.Close()
 
-	handler := handlers.NewProcessPaymentHandler(repo, store, provider, producer)
+	handler := handlers.NewProcessPaymentHandler(repo, store, uow, provider, producer)
 	consumer := kafka.NewConsumer(brokers, "payment-service", handler)
 
 	go func() {
@@ -72,7 +77,7 @@ func runMigrations(ctx context.Context, pool *pgxpool.Pool) error {
 			key        TEXT PRIMARY KEY,
 			state      TEXT NOT NULL,
 			created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-			updated_at TIMESTAMPTZ
+			updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 		);
 	`)
 	return err

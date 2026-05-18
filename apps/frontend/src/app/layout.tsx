@@ -1,14 +1,19 @@
-'use client';
-
-import { ApolloProvider } from '@apollo/client';
-import { apolloClient } from '../lib/apolloClient';
+import type { Metadata } from 'next';
+import { ClientProviders } from '@/components/client-providers';
 import './globals.css';
+
+export const metadata: Metadata = {
+  title: 'ManuelShop — E-commerce',
+  description: 'Plataforma de e-commerce com GraphQL Federation e DDD',
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR">
       <body>
-        <ApolloProvider client={apolloClient}>{children}</ApolloProvider>
+        <ClientProviders>
+          <main className="min-h-screen">{children}</main>
+        </ClientProviders>
       </body>
     </html>
   );

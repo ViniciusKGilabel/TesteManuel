@@ -29,16 +29,21 @@ func main() {
 
 	brokers := mustEnv("KAFKA_BROKERS")
 	repo := postgres.NewOrderRepository(pool)
-	producer := kafka.NewProducer(brokers)
+	producer, err := kafka.NewProducer(brokers)
+	if err != nil {
+		log.Fatalf("kafka producer: %v", err)
+	}
+	defer producer.Close()
 	fraudClient := fraud.NewClient(mustEnv("FRAUD_SIDECAR_URL"))
 
-	placeHandler := handlers.NewPlaceOrderHandler(repo, fraudClient, producer)
+	placeHandler := handlers.NewPlaceOrderHandler(repo, producer)
 	confirmHandler := handlers.NewConfirmOrderHandler(repo, producer)
 	cancelHandler := handlers.NewCancelOrderHandler(repo, producer)
+	stockReservedHandler := handlers.NewStockReservedHandler(repo, fraudClient, producer)
 	getHandler := handlers.NewGetOrderHandler(repo)
 	getByUserHandler := handlers.NewGetOrdersByUserHandler(repo)
 
-	consumer := kafka.NewConsumer(brokers, "order-service", confirmHandler, cancelHandler)
+	consumer := kafka.NewConsumer(brokers, "order-service", confirmHandler, cancelHandler, stockReservedHandler)
 	go func() {
 		if err := consumer.Start(ctx); err != nil {
 			log.Printf("kafka consumer error: %v", err)
@@ -63,16 +68,20 @@ func main() {
 func runMigrations(ctx context.Context, pool *pgxpool.Pool) error {
 	_, err := pool.Exec(ctx, `
 		CREATE TABLE IF NOT EXISTS orders (
-			id           TEXT PRIMARY KEY,
-			user_id      TEXT NOT NULL,
-			items        JSONB NOT NULL,
-			total_cents  BIGINT NOT NULL,
-			currency     TEXT NOT NULL DEFAULT 'BRL',
-			status       TEXT NOT NULL,
-			fraud_report JSONB,
-			created_at   TIMESTAMPTZ NOT NULL,
-			updated_at   TIMESTAMPTZ NOT NULL
+			id              TEXT PRIMARY KEY,
+			user_id         TEXT NOT NULL,
+			items           JSONB NOT NULL,
+			total_cents     BIGINT NOT NULL,
+			currency        TEXT NOT NULL DEFAULT 'BRL',
+			status          TEXT NOT NULL,
+			fraud_report    JSONB,
+			payment_attempt SMALLINT NOT NULL DEFAULT 0,
+			created_at      TIMESTAMPTZ NOT NULL,
+			updated_at      TIMESTAMPTZ NOT NULL
 		);
+		ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_attempt SMALLINT NOT NULL DEFAULT 0;
+		ALTER TABLE orders ADD COLUMN IF NOT EXISTS fraud_signals JSONB;
+		ALTER TABLE orders ADD COLUMN IF NOT EXISTS stock_reserved BOOLEAN NOT NULL DEFAULT FALSE;
 		CREATE INDEX IF NOT EXISTS orders_user_id_idx ON orders (user_id);
 	`)
 	return err

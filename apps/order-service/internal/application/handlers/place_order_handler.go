@@ -3,21 +3,20 @@ package handlers
 import (
 	"context"
 	"fmt"
+	"log"
+	"time"
 
 	"github.com/teste-manuel/order-service/internal/application/commands"
 	"github.com/teste-manuel/order-service/internal/domain/order"
-	"github.com/teste-manuel/order-service/internal/infrastructure/fraud"
-	"github.com/teste-manuel/order-service/internal/infrastructure/kafka"
 )
 
 type PlaceOrderHandler struct {
-	repo        order.Repository
-	fraudClient *fraud.Client
-	producer    *kafka.Producer
+	repo     order.Repository
+	producer OrderEventPublisher
 }
 
-func NewPlaceOrderHandler(repo order.Repository, fraudClient *fraud.Client, producer *kafka.Producer) *PlaceOrderHandler {
-	return &PlaceOrderHandler{repo: repo, fraudClient: fraudClient, producer: producer}
+func NewPlaceOrderHandler(repo order.Repository, producer OrderEventPublisher) *PlaceOrderHandler {
+	return &PlaceOrderHandler{repo: repo, producer: producer}
 }
 
 func (h *PlaceOrderHandler) Handle(ctx context.Context, cmd commands.PlaceOrder) (*order.Order, error) {
@@ -30,7 +29,8 @@ func (h *PlaceOrderHandler) Handle(ctx context.Context, cmd commands.PlaceOrder)
 		items = append(items, item)
 	}
 
-	o, err := order.NewOrder(cmd.OrderID, cmd.UserID, items)
+	signals := h.computeSignals(ctx, cmd)
+	o, err := order.NewOrder(cmd.OrderID, cmd.UserID, items, signals)
 	if err != nil {
 		return nil, fmt.Errorf("create order: %w", err)
 	}
@@ -43,5 +43,32 @@ func (h *PlaceOrderHandler) Handle(ctx context.Context, cmd commands.PlaceOrder)
 		return nil, fmt.Errorf("publish order.placed: %w", err)
 	}
 
+	if err := h.producer.PublishSagaState(ctx, o); err != nil {
+		log.Printf("[saga-state] publish failed order=%s: %v", o.ID(), err)
+	}
+
 	return o, nil
+}
+
+func (h *PlaceOrderHandler) computeSignals(ctx context.Context, cmd commands.PlaceOrder) order.FraudSignals {
+	var ordersLast24h, ordersLastHour int
+	if recent, err := h.repo.FindByUserID(ctx, cmd.UserID); err == nil {
+		now := time.Now().UTC()
+		for _, ro := range recent {
+			age := now.Sub(ro.CreatedAt())
+			if age <= 24*time.Hour {
+				ordersLast24h++
+			}
+			if age <= time.Hour {
+				ordersLastHour++
+			}
+		}
+	}
+	return order.FraudSignals{
+		UserAccountAgeDays: cmd.UserAccountAgeDays,
+		OrdersLast24h:      ordersLast24h,
+		OrdersLastHour:     ordersLastHour,
+		CartToOrderSeconds: cmd.CartToOrderSeconds,
+		IsNewAddress:       cmd.IsNewAddress,
+	}
 }

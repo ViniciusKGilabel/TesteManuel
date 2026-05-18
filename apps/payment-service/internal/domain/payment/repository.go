@@ -3,7 +3,21 @@ package payment
 import (
 	"context"
 	"errors"
+	"time"
 )
+
+// ProviderResult is the outcome of a single payment-provider charge attempt.
+type ProviderResult struct {
+	Authorized bool
+	Captured   bool
+	Declined   bool
+	Reason     string
+}
+
+// PaymentProvider is the port for external payment gateway integration.
+type PaymentProvider interface {
+	Process(ctx context.Context, orderID string, amountCents int64) (ProviderResult, error)
+}
 
 // ErrAlreadyInserted is returned by IdempotencyStore.Insert when the key already
 // exists with PROCESSING state, indicating a concurrent handler won the race.
@@ -27,8 +41,19 @@ type IdempotencyStore interface {
 	// Insert atomically creates a PROCESSING key. Returns ErrAlreadyInserted
 	// when a concurrent caller won the race for the same key.
 	Insert(ctx context.Context, key string) error
-	// Reset transitions a FAILED key back to PROCESSING for retry.
-	Reset(ctx context.Context, key string) error
 	Update(ctx context.Context, key string, state IdempotencyState) error
 	Get(ctx context.Context, key string) (IdempotencyState, bool, error)
+	// RefreshStaleProcessingLock resets a PROCESSING key whose updated_at is older
+	// than ttl, allowing the caller to retry a stuck payment. Returns true if the
+	// key was replaced (caller may proceed), false if the key is still fresh.
+	RefreshStaleProcessingLock(ctx context.Context, key string, ttl time.Duration) (bool, error)
+}
+
+// UnitOfWork atomically persists a terminal payment state change together with
+// the matching idempotency key update in a single database transaction.
+// This prevents the saga from receiving payment events while the payment row
+// or idempotency key are still in an intermediate state.
+type UnitOfWork interface {
+	FailPayment(ctx context.Context, p *Payment, key string) error
+	CompletePayment(ctx context.Context, p *Payment, key string) error
 }

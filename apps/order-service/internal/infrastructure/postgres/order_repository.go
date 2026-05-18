@@ -33,13 +33,21 @@ func (r *OrderRepository) Save(ctx context.Context, o *order.Order) error {
 		}
 	}
 
+	signalsJSON, err := json.Marshal(o.FraudSignals())
+	if err != nil {
+		return fmt.Errorf("marshal fraud signals: %w", err)
+	}
+
 	_, err = r.pool.Exec(ctx, `
-		INSERT INTO orders (id, user_id, items, total_cents, currency, status, fraud_report, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		INSERT INTO orders (id, user_id, items, total_cents, currency, status, fraud_report, fraud_signals, payment_attempt, stock_reserved, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
 		ON CONFLICT (id) DO UPDATE SET
-			status = EXCLUDED.status,
-			fraud_report = EXCLUDED.fraud_report,
-			updated_at = EXCLUDED.updated_at
+			status          = EXCLUDED.status,
+			fraud_report    = EXCLUDED.fraud_report,
+			fraud_signals   = EXCLUDED.fraud_signals,
+			payment_attempt = EXCLUDED.payment_attempt,
+			stock_reserved  = EXCLUDED.stock_reserved,
+			updated_at      = EXCLUDED.updated_at
 	`,
 		o.ID(),
 		o.UserID(),
@@ -48,6 +56,9 @@ func (r *OrderRepository) Save(ctx context.Context, o *order.Order) error {
 		o.Total().Currency(),
 		string(o.Status()),
 		fraudJSON,
+		signalsJSON,
+		o.PaymentAttempt(),
+		o.StockReserved(),
 		o.CreatedAt(),
 		o.UpdatedAt(),
 	)
@@ -59,7 +70,7 @@ func (r *OrderRepository) Save(ctx context.Context, o *order.Order) error {
 
 func (r *OrderRepository) FindByID(ctx context.Context, id string) (*order.Order, error) {
 	row := r.pool.QueryRow(ctx, `
-		SELECT id, user_id, items, total_cents, currency, status, fraud_report, created_at, updated_at
+		SELECT id, user_id, items, total_cents, currency, status, fraud_report, fraud_signals, payment_attempt, stock_reserved, created_at, updated_at
 		FROM orders WHERE id = $1
 	`, id)
 
@@ -68,7 +79,7 @@ func (r *OrderRepository) FindByID(ctx context.Context, id string) (*order.Order
 
 func (r *OrderRepository) FindByUserID(ctx context.Context, userID string) ([]*order.Order, error) {
 	rows, err := r.pool.Query(ctx, `
-		SELECT id, user_id, items, total_cents, currency, status, fraud_report, created_at, updated_at
+		SELECT id, user_id, items, total_cents, currency, status, fraud_report, fraud_signals, payment_attempt, stock_reserved, created_at, updated_at
 		FROM orders WHERE user_id = $1 ORDER BY created_at DESC
 	`, userID)
 	if err != nil {
@@ -104,10 +115,13 @@ func scanOrder(row rowScanner) (*order.Order, error) {
 		totalCents                   int64
 		itemsJSON                    []byte
 		fraudJSON                    []byte
+		signalsJSON                  []byte
+		paymentAttempt               int
+		stockReserved                bool
 		createdAt, updatedAt         time.Time
 	)
 
-	if err := row.Scan(&id, &userID, &itemsJSON, &totalCents, &currency, &status, &fraudJSON, &createdAt, &updatedAt); err != nil {
+	if err := row.Scan(&id, &userID, &itemsJSON, &totalCents, &currency, &status, &fraudJSON, &signalsJSON, &paymentAttempt, &stockReserved, &createdAt, &updatedAt); err != nil {
 		return nil, fmt.Errorf("scan order: %w", err)
 	}
 
@@ -125,9 +139,9 @@ func scanOrder(row rowScanner) (*order.Order, error) {
 		items = append(items, item)
 	}
 
-	o, err := order.NewOrder(id, userID, items)
+	totalMoney, err := order.NewMoney(totalCents, currency)
 	if err != nil {
-		return nil, fmt.Errorf("reconstruct order: %w", err)
+		return nil, fmt.Errorf("reconstruct total: %w", err)
 	}
 
 	var realFraud *order.FraudReport
@@ -139,52 +153,17 @@ func scanOrder(row rowScanner) (*order.Order, error) {
 		realFraud = &fr
 	}
 
-	if err := advanceToStatus(o, order.Status(status), realFraud); err != nil {
-		return nil, err
+	var signals order.FraudSignals
+	if len(signalsJSON) > 0 {
+		if err := json.Unmarshal(signalsJSON, &signals); err != nil {
+			return nil, fmt.Errorf("unmarshal fraud signals: %w", err)
+		}
 	}
 
+	o := order.Reconstitute(id, userID, items, totalMoney, order.Status(status), realFraud, signals, paymentAttempt, stockReserved, createdAt, updatedAt)
 	return o, nil
 }
 
-func advanceToStatus(o *order.Order, target order.Status, fraud *order.FraudReport) error {
-	if target == order.StatusPending || o.Status() == target {
-		return nil
-	}
-	if target == order.StatusCancelled {
-		return o.Cancel("restored from DB")
-	}
-
-	fraudForReplay := order.FraudReport{RecommendedAction: "APPROVE"}
-	if fraud != nil {
-		fraudForReplay = *fraud
-	}
-
-	steps := []struct {
-		to order.Status
-		fn func() error
-	}{
-		{order.StatusStockReserved, o.ReserveStock},
-		{order.StatusFraudChecked, func() error {
-			return o.ApplyFraudCheck(fraudForReplay)
-		}},
-		{order.StatusPaymentRequested, o.RequestPayment},
-		{order.StatusConfirmed, o.Confirm},
-	}
-
-	for _, step := range steps {
-		if o.Status() == target {
-			break
-		}
-		if err := step.fn(); err != nil {
-			return fmt.Errorf("advance to %s: %w", step.to, err)
-		}
-	}
-
-	if o.Status() != target {
-		return fmt.Errorf("could not advance order to status %s: stuck at %s", target, o.Status())
-	}
-	return nil
-}
 
 func marshalItems(items []order.OrderItem) ([]byte, error) {
 	rows := make([]itemRow, 0, len(items))

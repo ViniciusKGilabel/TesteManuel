@@ -1,6 +1,6 @@
 {
   "name": "@teste-manuel/shared-utils",
   "version": "0.0.1",
-  "main": "src/index.ts",
+  "main": "dist/index.js",
   "private": true
 }

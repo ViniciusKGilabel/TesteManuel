@@ -47,3 +47,11 @@ class TestRiskThresholds:
         resp = make_response(100, "CRITICAL", "REJECT")
         assert resp.risk_level == RiskLevel.CRITICAL
         assert resp.is_rejected()
+
+    def test_medium_risk_monitor_is_valid(self):
+        resp = make_response(45, "MEDIUM", "MONITOR")
+        assert not resp.is_rejected()
+
+    def test_medium_risk_reject_is_invalid(self):
+        with pytest.raises(ValueError):
+            make_response(45, "MEDIUM", "REJECT")

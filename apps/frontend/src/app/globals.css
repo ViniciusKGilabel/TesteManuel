@@ -1,3 +1,54 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  :root {
+    /* shadcn / Radix compat */
+    --background: 60 33% 97%;        /* canvas-cream #fbfbf5 */
+    --foreground: 0 0% 0%;           /* ink #000000 */
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+    --primary: 0 0% 0%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 5% 84%;         /* shade-30 */
+    --secondary-foreground: 0 0% 0%;
+    --muted: 240 5% 93%;
+    --muted-foreground: 240 4% 44%;  /* shade-50 */
+    --accent: 140 93% 86%;           /* aloe */
+    --accent-foreground: 0 0% 0%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5% 90%;            /* hairline-light */
+    --input: 240 5% 90%;
+    --ring: 0 0% 0%;
+    --radius: 0.75rem;
+
+    /* Shopify design tokens */
+    --aloe: #c1fbd4;
+    --pistachio: #d4f9e0;
+    --canvas-night: #000000;
+    --canvas-night-elevated: #0a0a0a;
+    --canvas-light: #ffffff;
+    --canvas-cream: #fbfbf5;
+    --shade-30: #d4d4d8;
+    --shade-40: #a1a1aa;
+    --shade-50: #71717a;
+    --shade-60: #52525b;
+    --shade-70: #3f3f46;
+    --hairline-light: #e4e4e7;
+    --hairline-dark: #1e2c31;
+    --link-cool: #9dabad;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: 'ss03' 1, 'rlig' 1, 'calt' 1;
+    font-optical-sizing: auto;
+  }
+}

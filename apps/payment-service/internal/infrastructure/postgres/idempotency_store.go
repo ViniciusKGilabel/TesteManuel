@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -33,17 +34,6 @@ func (s *IdempotencyStore) Insert(ctx context.Context, key string) error {
 	return nil
 }
 
-func (s *IdempotencyStore) Reset(ctx context.Context, key string) error {
-	_, err := s.pool.Exec(ctx, `
-		UPDATE idempotency_keys SET state = $1, updated_at = NOW()
-		WHERE key = $2 AND state = $3
-	`, string(payment.IdempotencyProcessing), key, string(payment.IdempotencyFailed))
-	if err != nil {
-		return fmt.Errorf("reset idempotency key: %w", err)
-	}
-	return nil
-}
-
 func (s *IdempotencyStore) Update(ctx context.Context, key string, state payment.IdempotencyState) error {
 	_, err := s.pool.Exec(ctx, `
 		UPDATE idempotency_keys SET state = $1, updated_at = NOW() WHERE key = $2
@@ -61,4 +51,18 @@ func (s *IdempotencyStore) Get(ctx context.Context, key string) (payment.Idempot
 		return "", false, fmt.Errorf("get idempotency key: %w", err)
 	}
 	return payment.IdempotencyState(state), true, nil
+}
+
+func (s *IdempotencyStore) RefreshStaleProcessingLock(ctx context.Context, key string, ttl time.Duration) (bool, error) {
+	tag, err := s.pool.Exec(ctx, `
+		UPDATE idempotency_keys
+		SET updated_at = NOW()
+		WHERE key = $1
+		  AND state = $2
+		  AND updated_at < NOW() - $3::interval
+	`, key, string(payment.IdempotencyProcessing), ttl.String())
+	if err != nil {
+		return false, fmt.Errorf("replace stale processing key: %w", err)
+	}
+	return tag.RowsAffected() > 0, nil
 }

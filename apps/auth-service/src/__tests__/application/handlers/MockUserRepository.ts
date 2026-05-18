@@ -4,10 +4,10 @@ import { IUserRepository } from '../../../domain/repositories/IUserRepository';
 import { Email } from '../../../domain/value-objects/Email';
 
 export class MockUserRepository implements IUserRepository {
-  private store: InMemoryRepository<User> = new InMemoryRepository();
+  private store = new InMemoryRepository<User>((u: User) => u.userId.value);
 
   async save(aggregate: User): Promise<void> {
-    await this.store.save(aggregate.userId.value, aggregate);
+    await this.store.save(aggregate);
   }
 
   async findById(id: any): Promise<User | null> {

@@ -5,29 +5,31 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"time"
 
 	"github.com/teste-manuel/payment-service/internal/application/commands"
 	"github.com/teste-manuel/payment-service/internal/domain/payment"
-	"github.com/teste-manuel/payment-service/internal/infrastructure/kafka"
-	"github.com/teste-manuel/payment-service/internal/infrastructure/mock_provider"
 )
 
 type ProcessPaymentHandler struct {
 	repo             payment.Repository
 	idempotencyStore payment.IdempotencyStore
-	provider         *mock_provider.Provider
-	producer         *kafka.Producer
+	uow              payment.UnitOfWork
+	provider         payment.PaymentProvider
+	producer         PaymentEventPublisher
 }
 
 func NewProcessPaymentHandler(
 	repo payment.Repository,
 	store payment.IdempotencyStore,
-	provider *mock_provider.Provider,
-	producer *kafka.Producer,
+	uow payment.UnitOfWork,
+	provider payment.PaymentProvider,
+	producer PaymentEventPublisher,
 ) *ProcessPaymentHandler {
 	return &ProcessPaymentHandler{
 		repo:             repo,
 		idempotencyStore: store,
+		uow:              uow,
 		provider:         provider,
 		producer:         producer,
 	}
@@ -46,16 +48,33 @@ func (h *ProcessPaymentHandler) Handle(ctx context.Context, cmd commands.Process
 	if found {
 		switch state {
 		case payment.IdempotencyCompleted:
-			return nil // already charged — safe no-op
-		case payment.IdempotencyProcessing:
-			return ErrAlreadyProcessing
-		case payment.IdempotencyFailed:
-			// FAILED → reset to PROCESSING so the retry holds the lock.
-			// Per design: retry uses an incremented attempt number; the Reset
-			// here re-arms the idempotency gate for this new attempt's key.
-			if err := h.idempotencyStore.Reset(ctx, key); err != nil {
-				return fmt.Errorf("reset idempotency key: %w", err)
+			// Already charged. Re-publish payment.processed so the saga can progress
+			// if the original publish was lost (e.g. broker restart between write and publish).
+			if p, lookupErr := h.repo.FindByIdempotencyKey(ctx, key); lookupErr == nil && p != nil {
+				if err := h.producer.PublishPaymentProcessed(ctx, p); err != nil {
+					return fmt.Errorf("re-publish payment.processed: %w", err)
+				}
 			}
+			return nil
+		case payment.IdempotencyProcessing:
+			replaced, err := h.idempotencyStore.RefreshStaleProcessingLock(ctx, key, 5*time.Minute)
+			if err != nil {
+				return fmt.Errorf("ttl check for stale processing key: %w", err)
+			}
+			if !replaced {
+				return ErrAlreadyProcessing
+			}
+			// Stale PROCESSING entry was reset — fall through to re-process.
+		case payment.IdempotencyFailed:
+			// Re-publish payment.failed so the saga can react if it missed the first
+			// delivery (e.g. consumer restart). The saga must be idempotent on this event.
+			// If the payment record is missing (edge case), skip re-publish silently.
+			if p, lookupErr := h.repo.FindByIdempotencyKey(ctx, key); lookupErr == nil && p != nil {
+				if err := h.producer.PublishPaymentFailed(ctx, p); err != nil {
+					return fmt.Errorf("re-publish payment.failed: %w", err)
+				}
+			}
+			return nil
 		}
 	} else {
 		if err := h.idempotencyStore.Insert(ctx, key); err != nil {
@@ -79,6 +98,7 @@ func (h *ProcessPaymentHandler) Handle(ctx context.Context, cmd commands.Process
 	}
 
 	if err := h.repo.Save(ctx, p); err != nil {
+		_ = h.idempotencyStore.Update(ctx, key, payment.IdempotencyFailed)
 		return fmt.Errorf("save payment: %w", err)
 	}
 
@@ -94,17 +114,14 @@ func (h *ProcessPaymentHandler) Handle(ctx context.Context, cmd commands.Process
 		if reason == "" {
 			reason = "payment declined"
 		}
-		if failErr := p.Fail(reason); failErr != nil {
-			log.Printf("payment.Fail order=%s: %v", cmd.OrderID, failErr)
+		if err := p.Fail(reason); err != nil {
+			return fmt.Errorf("transition payment to failed: %w", err)
 		}
-		if saveErr := h.repo.Save(ctx, p); saveErr != nil {
-			log.Printf("save failed payment order=%s: %v", cmd.OrderID, saveErr)
+		if err := h.uow.FailPayment(ctx, p, key); err != nil {
+			return fmt.Errorf("persist payment failure: %w", err)
 		}
-		if updateErr := h.idempotencyStore.Update(ctx, key, payment.IdempotencyFailed); updateErr != nil {
-			log.Printf("update idempotency key order=%s: %v", cmd.OrderID, updateErr)
-		}
-		if pubErr := h.producer.PublishPaymentFailed(ctx, p); pubErr != nil {
-			return fmt.Errorf("publish payment.failed: %w", pubErr)
+		if err := h.producer.PublishPaymentFailed(ctx, p); err != nil {
+			return fmt.Errorf("publish payment.failed: %w", err)
 		}
 		return fmt.Errorf("payment failed: %s", reason)
 	}
@@ -113,12 +130,8 @@ func (h *ProcessPaymentHandler) Handle(ctx context.Context, cmd commands.Process
 		return fmt.Errorf("complete payment: %w", err)
 	}
 
-	if err := h.repo.Save(ctx, p); err != nil {
-		return fmt.Errorf("save completed payment: %w", err)
-	}
-
-	if err := h.idempotencyStore.Update(ctx, key, payment.IdempotencyCompleted); err != nil {
-		return fmt.Errorf("update idempotency key: %w", err)
+	if err := h.uow.CompletePayment(ctx, p, key); err != nil {
+		return fmt.Errorf("persist payment completion: %w", err)
 	}
 
 	if err := h.producer.PublishPaymentProcessed(ctx, p); err != nil {
