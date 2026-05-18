@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Search, SlidersHorizontal, Package } from 'lucide-react';
 import { ProductCard, ProductCardSkeleton } from '@/components/products/product-card';
+import { EmptyState } from '@/components/ui/empty-state';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import { useCart } from '@/context/cart-context';
+import { useProducts } from '@/hooks/use-products';
 import { cn } from '@/lib/utils';
-import { fetchWooProducts, type WooProduct } from '@/lib/woocommerce';
-
-type Product = WooProduct;
 
 const SORT_OPTIONS = [
   { label: 'Relevância', value: 'relevance' },
@@ -23,19 +23,8 @@ export default function ProductsPage() {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('relevance');
   const [activeFilter, setActiveFilter] = useState('Todos');
-  const [allProducts, setAllProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
-
-  useEffect(() => {
-    fetchWooProducts()
-      .then((products) => {
-        if (products.length === 0) setError(true);
-        setAllProducts(products);
-      })
-      .catch(() => setError(true))
-      .finally(() => setLoading(false));
-  }, []);
+  const { products: allProducts, loading, error } = useProducts();
+  const { addItem } = useCart();
 
   const filtered = allProducts
     .filter((p) => {
@@ -123,24 +112,24 @@ export default function ProductsPage() {
       ) : filtered.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {filtered.map((product) => (
-            <ProductCard key={product.id} product={product} />
+            <ProductCard
+              key={product.id}
+              product={product}
+              onAddToCart={() => addItem({ id: product.id, name: product.name, price: product.price, currency: product.currency })}
+            />
           ))}
         </div>
       ) : !error ? (
-        <div className="text-center py-24">
-          <div className="inline-flex h-20 w-20 items-center justify-center rounded-full bg-[#f4f4f5] mb-4">
-            <Package className="h-10 w-10 text-[#a1a1aa]" strokeWidth={1} />
-          </div>
-          <h3 className="font-medium text-lg mb-1">Nenhum produto encontrado</h3>
-          <p className="text-[#71717a] text-sm">
-            {search ? 'Tente uma busca diferente.' : 'O catálogo está vazio por enquanto.'}
-          </p>
-          {search && (
-            <Button variant="outline" size="sm" className="mt-4" onClick={() => setSearch('')}>
+        <EmptyState
+          icon={<Package className="h-10 w-10 text-[#a1a1aa]" strokeWidth={1} />}
+          title="Nenhum produto encontrado"
+          description={search ? 'Tente uma busca diferente.' : 'O catálogo está vazio por enquanto.'}
+          action={search ? (
+            <Button variant="outline" size="sm" onClick={() => setSearch('')}>
               Limpar busca
             </Button>
-          )}
-        </div>
+          ) : undefined}
+        />
       ) : null}
     </div>
   );

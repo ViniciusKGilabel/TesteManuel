@@ -7,7 +7,7 @@ interface ProductIdProps {
 export class ProductId extends ValueObject<ProductIdProps> {
   static create(value: string): ProductId {
     const trimmed = value?.trim();
-    if (!trimmed) throw new Error('ProductId cannot be empty');
+    if (!trimmed) throw new Error('Product ID is required');
     return new ProductId({ value: trimmed });
   }
 

@@ -1,6 +1,7 @@
 import { ReleaseStockHandler } from '../../../application/handlers/ReleaseStockHandler';
 import { IWooCommercePort, WooProductData } from '../../../application/ports/IWooCommercePort';
-import { IStockReservationRepository, StockReservationItem } from '../../../domain/stock/IStockReservationRepository';
+import { IStockReservationRepository } from '../../../domain/stock/IStockReservationRepository';
+import { StockReservation } from '../../../domain/stock/entities/StockReservation';
 
 class MockWooCommerce implements IWooCommercePort {
   readonly stockUpdates: Array<{ productId: string; delta: number }> = [];
@@ -16,13 +17,13 @@ class MockWooCommerce implements IWooCommercePort {
 }
 
 class MockReservationRepository implements IStockReservationRepository {
-  private reservations: StockReservationItem[] = [];
+  private reservations: StockReservation[] = [];
 
-  async getByOrderId(orderId: string): Promise<StockReservationItem[]> {
+  async getByOrderId(orderId: string): Promise<StockReservation[]> {
     return this.reservations.filter((r) => r.orderId === orderId);
   }
 
-  async reserve(items: StockReservationItem[]): Promise<void> {
+  async reserve(items: StockReservation[]): Promise<void> {
     this.reservations.push(...items);
   }
 
@@ -48,8 +49,8 @@ describe('ReleaseStockHandler', () => {
 
   it('restores WooCommerce stock and removes reservations for the given order', async () => {
     await repo.reserve([
-      { orderId: 'ord-1', productId: '1', quantity: 5 },
-      { orderId: 'ord-1', productId: '2', quantity: 3 },
+      StockReservation.create('ord-1', '1', 5),
+      StockReservation.create('ord-1', '2', 3),
     ]);
     await handler.handle({ orderID: 'ord-1' });
 
@@ -62,8 +63,8 @@ describe('ReleaseStockHandler', () => {
 
   it('does not affect reservations from other orders', async () => {
     await repo.reserve([
-      { orderId: 'ord-1', productId: '1', quantity: 5 },
-      { orderId: 'ord-2', productId: '1', quantity: 3 },
+      StockReservation.create('ord-1', '1', 5),
+      StockReservation.create('ord-2', '1', 3),
     ]);
     await handler.handle({ orderID: 'ord-1' });
     expect(repo.getAll()).toHaveLength(1);

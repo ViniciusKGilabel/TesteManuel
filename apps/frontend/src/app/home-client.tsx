@@ -2,21 +2,10 @@
 
 import Link from 'next/link';
 import { ArrowRight, Shield, Truck, RefreshCw, Star } from 'lucide-react';
-import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { ProductCard, ProductCardSkeleton } from '@/components/products/product-card';
-import { fetchWooProducts, type WooProduct } from '@/lib/woocommerce';
-
-type Product = WooProduct;
-
-const CATEGORIES = [
-  { label: 'Eletrônicos', emoji: '📱' },
-  { label: 'Moda', emoji: '👗' },
-  { label: 'Casa & Jardim', emoji: '🏡' },
-  { label: 'Esportes', emoji: '⚽' },
-  { label: 'Livros', emoji: '📚' },
-  { label: 'Beleza', emoji: '✨' },
-];
+import { useCart } from '@/context/cart-context';
+import { useProducts } from '@/hooks/use-products';
 
 const FEATURES = [
   { icon: Truck, title: 'Frete grátis', desc: 'Em pedidos acima de R$ 200' },
@@ -26,14 +15,9 @@ const FEATURES = [
 ];
 
 export default function HomePage() {
-  const [featured, setFeatured] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchWooProducts()
-      .then((products) => setFeatured(products.slice(0, 4)))
-      .finally(() => setLoading(false));
-  }, []);
+  const { products, loading } = useProducts();
+  const { addItem } = useCart();
+  const featured = products.slice(0, 4);
 
   return (
     <>
@@ -100,35 +84,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Categories  not implemented */}
-      {/* <section className="container ">
-        <div className="flex items-end justify-between mb-8">
-          <div>
-            <p className="text-xs font-medium tracking-widest text-[#71717a] uppercase mb-2">Explorar</p>
-            <h2 className="text-3xl font-light tracking-tight">Categorias</h2>
-          </div>
-          <Link href="/products" className="text-sm text-[#71717a] hover:text-black transition-colors flex items-center gap-1">
-            Ver todas <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {CATEGORIES.map((cat) => (
-            <Link
-              key={cat.label}
-              href="/products"
-              className="group flex flex-col items-center gap-3 p-5 rounded-2xl border border-[#e4e4e7] bg-white hover:border-black hover:shadow-sm transition-all"
-            >
-              <span className="text-3xl group-hover:scale-110 transition-transform inline-block">
-                {cat.emoji}
-              </span>
-              <span className="text-sm font-medium text-center text-[#3f3f46] group-hover:text-black transition-colors">
-                {cat.label}
-              </span>
-            </Link>
-          ))}
-        </div>
-      </section> */}
-
       {/* Featured Products */}
       <section className="container pb-16 py-16">
         <div className="flex items-end justify-between mb-8">
@@ -148,7 +103,11 @@ export default function HomePage() {
         ) : featured.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {featured.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard
+                key={product.id}
+                product={product}
+                onAddToCart={() => addItem({ id: product.id, name: product.name, price: product.price, currency: product.currency })}
+              />
             ))}
           </div>
         ) : (

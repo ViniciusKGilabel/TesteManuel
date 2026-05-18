@@ -4,6 +4,7 @@ import { ProductId } from '../../product/value-objects/ProductId';
 import { CartItemAddedEvent } from '../events/CartItemAddedEvent';
 import { CartItemRemovedEvent } from '../events/CartItemRemovedEvent';
 import { CartItemQuantityUpdatedEvent } from '../events/CartItemQuantityUpdatedEvent';
+import { CartClearedEvent } from '../events/CartClearedEvent';
 
 export interface CartLineItem {
   productId: string;
@@ -87,6 +88,7 @@ export class Cart extends AggregateRoot<string> {
   clear(): void {
     this.items.clear();
     this.updatedAt = new Date();
+    this.addDomainEvent(new CartClearedEvent(this._id, this.userId));
   }
 
   get cartId(): string { return this._id; }

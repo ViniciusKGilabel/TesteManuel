@@ -13,9 +13,33 @@ export const typeDefs = parse(`#graphql
     stock: Int!
   }
 
+  type CartLineItem {
+    productId: ID!
+    quantity: Int!
+    unitPrice: Float!
+  }
+
+  type Cart {
+    id: ID!
+    userId: ID!
+    items: [CartLineItem!]!
+    total: Float!
+  }
+
+  input AddToCartInput {
+    userId: ID!
+    productId: ID!
+    quantity: Int!
+    unitPrice: Float!
+  }
+
   type Query {
     products: [Product!]!
     product(id: ID!): Product
     _health: Boolean
+  }
+
+  type Mutation {
+    addToCart(input: AddToCartInput!): Cart!
   }
 `);

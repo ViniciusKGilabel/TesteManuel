@@ -1,12 +1,11 @@
 'use client';
 
 import { ShoppingCart, Package } from 'lucide-react';
-import { useCart } from '@/context/cart-context';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatPrice } from '@/lib/utils';
 
-interface Product {
+export interface Product {
   id: string;
   name: string;
   description: string;
@@ -17,10 +16,10 @@ interface Product {
 
 interface ProductCardProps {
   product: Product;
+  onAddToCart: () => void;
 }
 
-export function ProductCard({ product }: ProductCardProps) {
-  const { addItem } = useCart();
+export function ProductCard({ product, onAddToCart }: ProductCardProps) {
   const inStock = product.stock > 0;
   const lowStock = product.stock > 0 && product.stock <= 5;
 
@@ -54,7 +53,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
           <Button
             size="sm"
-            onClick={() => addItem({ id: product.id, name: product.name, price: product.price, currency: product.currency })}
+            onClick={onAddToCart}
             disabled={!inStock}
             className="gap-1.5"
           >
