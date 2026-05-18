@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Eye, EyeOff, Zap, ArrowRight, Loader2 } from 'lucide-react';
+import { Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react';
 import { authClient } from '@/lib/authClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,29 +59,29 @@ export default function LoginPage() {
   return (
     <div className="min-h-[calc(100vh-4rem)] flex">
       {/* Left — branding */}
-      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 text-white flex-col justify-between p-12 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-25">
-          <div className="absolute top-20 right-10 w-64 h-64 bg-orange-500 rounded-full blur-3xl" />
-          <div className="absolute bottom-20 left-10 w-80 h-80 bg-rose-500 rounded-full blur-3xl" />
-        </div>
-        <div className="relative">
-          <Link href="/" className="flex items-center gap-2 font-bold text-xl">
-            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center">
-              <Zap className="h-5 w-5 text-white" />
-            </div>
-            Manuel<span className="text-orange-400">Shop</span>
+      <div className="hidden lg:flex flex-1 bg-black text-white flex-col justify-between p-12">
+        <div>
+          <Link
+            href="/"
+            className="font-light text-xl tracking-wide text-white hover:opacity-80 transition-opacity inline-block"
+            style={{ fontFeatureSettings: '"ss03"' }}
+          >
+            Manuel<span className="font-normal">Shop</span>
           </Link>
         </div>
-        <div className="relative space-y-4">
-          <blockquote className="text-3xl font-bold leading-snug">
+        <div className="space-y-4 max-w-sm">
+          <blockquote
+            className="text-4xl font-light leading-snug tracking-tight"
+            style={{ fontFeatureSettings: '"ss03"' }}
+          >
             "A melhor experiência de compra online, do início ao fim."
           </blockquote>
-          <p className="text-zinc-400">BetterAuth · GraphQL Federation · DDD · Next.js 15</p>
+          <p className="text-[#9dabad] text-sm">BetterAuth · GraphQL Federation · DDD · Next.js 15</p>
         </div>
-        <div className="relative flex items-center gap-4 text-sm text-zinc-400">
+        <div className="flex items-center gap-3 text-sm text-[#9dabad]">
           <div className="flex -space-x-2">
-            {['from-orange-400 to-rose-500', 'from-violet-400 to-purple-600', 'from-emerald-400 to-teal-500'].map((g, i) => (
-              <div key={i} className={`h-8 w-8 rounded-full bg-gradient-to-br ${g} border-2 border-zinc-900`} />
+            {['bg-[#c1fbd4]', 'bg-[#71717a]', 'bg-white'].map((bg, i) => (
+              <div key={i} className={`h-8 w-8 rounded-full ${bg} border-2 border-black`} />
             ))}
           </div>
           <span>+12.000 clientes confiam em nós</span>
@@ -148,7 +148,7 @@ export default function LoginPage() {
               <div className="flex justify-between">
                 <label className="text-sm font-medium">Senha</label>
                 {mode === 'login' && (
-                  <button type="button" className="text-xs text-orange-500 hover:underline">
+                  <button type="button" className="text-xs text-[#71717a] hover:text-black hover:underline">
                     Esqueci a senha
                   </button>
                 )}
@@ -198,13 +198,13 @@ export default function LoginPage() {
           <p className="mt-6 text-center text-sm text-muted-foreground">
             {mode === 'login' ? (
               <>Não tem conta?{' '}
-                <button onClick={() => setMode('register')} className="text-orange-500 font-medium hover:underline">
+                <button onClick={() => setMode('register')} className="text-black font-medium hover:underline">
                   Cadastre-se grátis
                 </button>
               </>
             ) : (
               <>Já tem uma conta?{' '}
-                <button onClick={() => setMode('login')} className="text-orange-500 font-medium hover:underline">
+                <button onClick={() => setMode('login')} className="text-black font-medium hover:underline">
                   Entrar
                 </button>
               </>

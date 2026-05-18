@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ArrowRight, Shield, Truck, RefreshCw, Star, Zap } from 'lucide-react';
+import { ArrowRight, Shield, Truck, RefreshCw, Star } from 'lucide-react';
 import { useQuery } from '@apollo/client/react';
 import { Button } from '@/components/ui/button';
 import { ProductCard, ProductCardSkeleton } from '@/components/products/product-card';
@@ -17,12 +17,12 @@ interface Product {
 }
 
 const CATEGORIES = [
-  { label: 'Eletrônicos', emoji: '📱', color: 'from-blue-400 to-indigo-500' },
-  { label: 'Moda', emoji: '👗', color: 'from-pink-400 to-rose-500' },
-  { label: 'Casa & Jardim', emoji: '🏡', color: 'from-emerald-400 to-teal-500' },
-  { label: 'Esportes', emoji: '⚽', color: 'from-orange-400 to-amber-500' },
-  { label: 'Livros', emoji: '📚', color: 'from-violet-400 to-purple-500' },
-  { label: 'Beleza', emoji: '✨', color: 'from-fuchsia-400 to-pink-500' },
+  { label: 'Eletrônicos', emoji: '📱' },
+  { label: 'Moda', emoji: '👗' },
+  { label: 'Casa & Jardim', emoji: '🏡' },
+  { label: 'Esportes', emoji: '⚽' },
+  { label: 'Livros', emoji: '📚' },
+  { label: 'Beleza', emoji: '✨' },
 ];
 
 const FEATURES = [
@@ -38,80 +38,62 @@ export default function HomePage() {
 
   return (
     <>
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-900 text-white">
-        <div className="absolute inset-0 opacity-30">
-          <div className="absolute top-20 left-10 w-72 h-72 bg-orange-500 rounded-full blur-3xl" />
-          <div className="absolute bottom-10 right-20 w-96 h-96 bg-rose-500 rounded-full blur-3xl" />
-          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-violet-500 rounded-full blur-3xl" />
-        </div>
-
-        <div className="container relative py-28 md:py-36">
-          <div className="max-w-2xl">
-            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur rounded-full px-4 py-1.5 text-sm mb-6 border border-white/20">
-              <Zap className="h-3.5 w-3.5 text-orange-400" />
-              <span>Nova temporada chegou</span>
-            </div>
-
-            <h1 className="text-5xl md:text-7xl font-extrabold leading-none tracking-tight mb-6">
-              Compre o que
-              <br />
-              <span className="bg-gradient-to-r from-orange-400 to-rose-400 bg-clip-text text-transparent">
-                você ama
-              </span>
-            </h1>
-
-            <p className="text-lg text-zinc-300 mb-8 leading-relaxed max-w-lg">
-              Milhares de produtos com os melhores preços, entrega rápida e pagamento seguro. A sua experiência de compra começa aqui.
+      {/* Hero — cinematic dark */}
+      <section className="bg-black text-white">
+        <div className="container py-28 md:py-40">
+          <div className="max-w-3xl">
+            <p className="text-xs font-medium tracking-widest text-[#9dabad] uppercase mb-6">
+              Nova temporada chegou
             </p>
 
-            <div className="flex flex-wrap gap-4">
-              <Button variant="brand" size="xl" asChild>
+            <h1
+              className="text-6xl md:text-8xl font-light leading-none tracking-tight mb-8"
+              style={{ fontFeatureSettings: '"ss03"' }}
+            >
+              Compre o que
+              <br />
+              <span className="font-normal">você ama</span>
+            </h1>
+
+            <p className="text-lg text-white/50 mb-10 leading-relaxed max-w-lg">
+              Milhares de produtos com os melhores preços, entrega rápida e pagamento seguro.
+            </p>
+
+            <div className="flex flex-wrap gap-3">
+              <Button variant="aloe" size="xl" asChild>
                 <Link href="/products">
                   Ver produtos <ArrowRight className="h-5 w-5" />
                 </Link>
               </Button>
-              <Button
-                size="xl"
-                variant="outline"
-                className="border-white/30 text-white bg-white/10 hover:bg-white/20"
-                asChild
-              >
+              <Button variant="outline-white" size="xl" asChild>
                 <Link href="/orders">Meus pedidos</Link>
               </Button>
             </div>
 
-            <div className="flex items-center gap-6 mt-10 text-sm text-zinc-400">
-              <div className="flex items-center gap-2">
-                <div className="flex -space-x-2">
-                  {['from-violet-400 to-purple-600', 'from-orange-400 to-rose-500', 'from-emerald-400 to-teal-500', 'from-blue-400 to-indigo-500'].map((g, i) => (
-                    <div key={i} className={`h-7 w-7 rounded-full bg-gradient-to-br ${g} border-2 border-zinc-900`} />
-                  ))}
-                </div>
-                <span>+12k clientes satisfeitos</span>
-              </div>
-              <div className="flex items-center gap-1">
-                <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
-                <span className="font-semibold text-white">4.9</span>
-                <span>avaliação</span>
-              </div>
+            <div className="flex items-center gap-6 mt-12 text-sm text-white/30">
+              <span>+12k clientes satisfeitos</span>
+              <span className="h-px w-8 bg-white/20" />
+              <span className="flex items-center gap-1">
+                <Star className="h-3.5 w-3.5 fill-[#c1fbd4] text-[#c1fbd4]" />
+                <span className="text-white/60 font-medium">4.9</span> avaliação
+              </span>
             </div>
           </div>
         </div>
       </section>
 
       {/* Features bar */}
-      <section className="border-b">
+      <section className="border-b border-[#e4e4e7] bg-white">
         <div className="container py-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {FEATURES.map(({ icon: Icon, title, desc }) => (
               <div key={title} className="flex items-center gap-3 py-2">
-                <div className="h-10 w-10 rounded-xl bg-orange-50 flex items-center justify-center flex-shrink-0">
-                  <Icon className="h-5 w-5 text-orange-500" />
+                <div className="h-9 w-9 rounded-full bg-[#f4f4f5] flex items-center justify-center flex-shrink-0">
+                  <Icon className="h-4 w-4 text-black" strokeWidth={1.5} />
                 </div>
                 <div>
-                  <p className="font-semibold text-sm">{title}</p>
-                  <p className="text-xs text-muted-foreground">{desc}</p>
+                  <p className="font-medium text-sm">{title}</p>
+                  <p className="text-xs text-[#71717a]">{desc}</p>
                 </div>
               </div>
             ))}
@@ -123,24 +105,26 @@ export default function HomePage() {
       <section className="container py-16">
         <div className="flex items-end justify-between mb-8">
           <div>
-            <p className="text-sm font-medium text-orange-500 mb-1">Explorar</p>
-            <h2 className="text-3xl font-bold">Categorias</h2>
+            <p className="text-xs font-medium tracking-widest text-[#71717a] uppercase mb-2">Explorar</p>
+            <h2 className="text-3xl font-light tracking-tight">Categorias</h2>
           </div>
-          <Link href="/products" className="text-sm font-medium hover:text-orange-500 transition-colors">
-            Ver todas →
+          <Link href="/products" className="text-sm text-[#71717a] hover:text-black transition-colors flex items-center gap-1">
+            Ver todas <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           {CATEGORIES.map((cat) => (
             <Link
               key={cat.label}
               href="/products"
-              className="group flex flex-col items-center gap-3 p-5 rounded-2xl border hover:border-orange-200 hover:bg-orange-50/50 transition-all"
+              className="group flex flex-col items-center gap-3 p-5 rounded-2xl border border-[#e4e4e7] bg-white hover:border-black hover:shadow-sm transition-all"
             >
-              <div className={`h-14 w-14 rounded-2xl bg-gradient-to-br ${cat.color} flex items-center justify-center text-2xl shadow-sm group-hover:scale-110 transition-transform`}>
+              <span className="text-3xl group-hover:scale-110 transition-transform inline-block">
                 {cat.emoji}
-              </div>
-              <span className="text-sm font-medium text-center">{cat.label}</span>
+              </span>
+              <span className="text-sm font-medium text-center text-[#3f3f46] group-hover:text-black transition-colors">
+                {cat.label}
+              </span>
             </Link>
           ))}
         </div>
@@ -150,11 +134,11 @@ export default function HomePage() {
       <section className="container pb-16">
         <div className="flex items-end justify-between mb-8">
           <div>
-            <p className="text-sm font-medium text-orange-500 mb-1">Destaques</p>
-            <h2 className="text-3xl font-bold">Produtos em alta</h2>
+            <p className="text-xs font-medium tracking-widest text-[#71717a] uppercase mb-2">Destaques</p>
+            <h2 className="text-3xl font-light tracking-tight">Produtos em alta</h2>
           </div>
-          <Link href="/products" className="text-sm font-medium hover:text-orange-500 transition-colors">
-            Ver todos →
+          <Link href="/products" className="text-sm text-[#71717a] hover:text-black transition-colors flex items-center gap-1">
+            Ver todos <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
 
@@ -169,9 +153,9 @@ export default function HomePage() {
             ))}
           </div>
         ) : (
-          <div className="rounded-2xl border-2 border-dashed border-border p-16 text-center">
-            <p className="text-muted-foreground font-medium">API desconectada — inicie os serviços com</p>
-            <code className="text-sm bg-muted px-3 py-1.5 rounded-lg mt-2 inline-block font-mono">docker-compose up</code>
+          <div className="rounded-2xl border border-[#e4e4e7] p-16 text-center">
+            <p className="text-[#71717a] font-medium">API desconectada — inicie os serviços com</p>
+            <code className="text-sm bg-[#f4f4f5] px-3 py-1.5 rounded-lg mt-2 inline-block font-mono">docker-compose up</code>
           </div>
         )}
 
@@ -184,16 +168,16 @@ export default function HomePage() {
 
       {/* CTA Banner */}
       <section className="container pb-16">
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-orange-500 to-rose-500 text-white p-10 md:p-14">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4" />
-          <div className="absolute bottom-0 left-1/4 w-32 h-32 bg-white/10 rounded-full translate-y-1/2" />
+        <div className="relative overflow-hidden rounded-3xl bg-black text-white px-10 py-14 md:px-16">
+          <div className="absolute right-0 top-0 bottom-0 w-1/3 bg-[#c1fbd4]/5 rounded-l-full -translate-x-8" />
           <div className="relative max-w-lg">
-            <h2 className="text-3xl md:text-4xl font-extrabold mb-3">Primeira compra?</h2>
-            <p className="text-white/80 text-lg mb-6">
-              Use o código <strong>BEMVINDO</strong> e ganhe 15% de desconto no seu primeiro pedido.
+            <p className="text-xs font-medium tracking-widest text-[#9dabad] uppercase mb-4">Oferta de boas-vindas</p>
+            <h2 className="text-4xl font-light tracking-tight mb-3">Primeira compra?</h2>
+            <p className="text-white/50 text-base mb-8 leading-relaxed">
+              Use o código <strong className="text-white font-medium">BEMVINDO</strong> e ganhe 15% de desconto no seu primeiro pedido.
             </p>
-            <Button size="lg" className="bg-white text-orange-500 hover:bg-white/90 font-bold" asChild>
-              <Link href="/products">Comprar agora</Link>
+            <Button variant="aloe" size="lg" asChild>
+              <Link href="/products">Comprar agora <ArrowRight className="h-4 w-4" /></Link>
             </Button>
           </div>
         </div>

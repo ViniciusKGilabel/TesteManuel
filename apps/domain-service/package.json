@@ -6,13 +6,6 @@
     "start": "node dist/main.js",
     "dev": "ts-node src/main.ts",
     "build": "tsc",
-    "test": "jest --config jest.config.ts",
-    "test:watch": "jest --watch --config jest.config.ts"
-  },
-  "scripts": {
-    "start": "node dist/main.js",
-    "dev": "ts-node src/main.ts",
-    "build": "tsc",
     "seed": "ts-node src/seed.ts",
     "test": "jest --config jest.config.ts",
     "test:watch": "jest --watch --config jest.config.ts"

@@ -16,7 +16,6 @@ const gateway = new ApolloGateway({
       // Authentication goes directly from the client → auth-service, not through this gateway.
       createFederatedServiceConfig('domain-service', subgraphURL('SUBGRAPH_DOMAIN_URL', 3002)),
       createFederatedServiceConfig('order-service', subgraphURL('SUBGRAPH_ORDER_URL', 3003)),
-      createFederatedServiceConfig('wordpress-service', subgraphURL('SUBGRAPH_WORDPRESS_URL', 8080)),
     ],
     pollIntervalInMs: 10000,
   }),

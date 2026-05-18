@@ -38,7 +38,7 @@ function PostCard({ post }: { post: Post }) {
           )}
         </div>
 
-        <h2 className="font-bold text-xl leading-snug group-hover:text-orange-500 transition-colors mb-2">
+        <h2 className="font-medium text-xl leading-snug group-hover:opacity-60 transition-opacity mb-2">
           {post.title ?? 'Sem título'}
         </h2>
 
@@ -48,7 +48,7 @@ function PostCard({ post }: { post: Post }) {
           </p>
         )}
 
-        <span className="inline-flex items-center gap-1 text-sm font-medium text-orange-500 group-hover:gap-2 transition-all">
+        <span className="inline-flex items-center gap-1 text-sm font-medium text-black group-hover:gap-2 transition-all">
           Ler mais <ArrowRight className="h-4 w-4" />
         </span>
       </article>
@@ -77,8 +77,8 @@ export default function BlogPage() {
   return (
     <div className="container py-10">
       <div className="mb-10">
-        <p className="text-sm font-medium text-orange-500 mb-1">Conteúdo</p>
-        <h1 className="text-4xl font-extrabold tracking-tight">Blog</h1>
+        <p className="text-xs font-medium tracking-widest text-[#71717a] uppercase mb-2">Conteúdo</p>
+        <h1 className="text-4xl font-light tracking-tight">Blog</h1>
         <p className="text-muted-foreground mt-2">Notícias, novidades e dicas da nossa loja.</p>
       </div>
 

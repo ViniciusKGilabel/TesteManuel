@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { ShoppingBag, User, Search, Menu, X, Zap, LogOut } from 'lucide-react';
+import { ShoppingBag, User, Menu, X, LogOut } from 'lucide-react';
 import { useState } from 'react';
 import { useCart } from '@/context/cart-context';
 import { useAuth } from '@/context/auth-context';
@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 const NAV_LINKS = [
-  { href: '/', label: 'Início' },
   { href: '/products', label: 'Produtos' },
   { href: '/blog', label: 'Blog' },
   { href: '/orders', label: 'Meus Pedidos' },
@@ -21,15 +20,16 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-30 w-full border-b bg-white/80 backdrop-blur-md">
+    <header className="sticky top-0 z-30 w-full bg-black text-white border-b border-white/10">
       <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2 font-bold text-xl tracking-tight">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-orange-400 to-rose-500 flex items-center justify-center">
-              <Zap className="h-4 w-4 text-white" />
-            </div>
-            <span>Manuel</span>
-            <span className="text-orange-500">Shop</span>
+        {/* Logo */}
+        <div className="flex items-center gap-10">
+          <Link
+            href="/"
+            className="text-white font-light text-xl tracking-wide hover:opacity-80 transition-opacity"
+            style={{ fontFeatureSettings: '"ss03"' }}
+          >
+            Manuel<span className="font-normal">Shop</span>
           </Link>
 
           <nav className="hidden md:flex items-center gap-1">
@@ -37,7 +37,7 @@ export function Navbar() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="px-4 py-2 text-sm font-medium text-muted-foreground rounded-md hover:text-foreground hover:bg-muted transition-colors"
+                className="px-4 py-2 text-sm text-white/60 hover:text-white transition-colors rounded-full hover:bg-white/5"
               >
                 {link.label}
               </Link>
@@ -45,48 +45,47 @@ export function Navbar() {
           </nav>
         </div>
 
+        {/* Actions */}
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" className="hidden sm:flex">
-            <Search className="h-4 w-4" />
-          </Button>
-
           {!isPending && user ? (
             <div className="flex items-center gap-1">
               <Link href="/orders">
-                <Button variant="ghost" size="sm" className="hidden sm:flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
-                  <User className="h-4 w-4" />
+                <Button variant="ghost-white" size="sm" className="hidden sm:flex items-center gap-1.5 text-sm text-white/70 hover:text-white">
+                  <User className="h-3.5 w-3.5" />
                   <span className="max-w-[100px] truncate">{user.email.split('@')[0]}</span>
                 </Button>
               </Link>
-              <Button variant="ghost" size="icon" onClick={logout} title="Sair">
+              <Button variant="ghost-white" size="icon" onClick={logout} title="Sair">
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>
           ) : (
             <Link href="/login">
-              <Button variant="ghost" size="icon">
-                <User className="h-4 w-4" />
+              <Button variant="outline-white" size="sm" className="hidden sm:flex text-xs px-5">
+                Entrar
               </Button>
             </Link>
           )}
 
+          {/* Cart */}
           <button
             onClick={toggle}
             className={cn(
-              'relative flex items-center justify-center h-9 w-9 rounded-md',
-              'hover:bg-accent transition-colors'
+              'relative flex items-center justify-center h-9 w-9 rounded-full',
+              'text-white/70 hover:text-white hover:bg-white/10 transition-colors'
             )}
           >
             <ShoppingBag className="h-4 w-4" />
             {count > 0 && (
-              <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-orange-500 text-[10px] font-bold text-white flex items-center justify-center">
+              <span className="absolute -top-0.5 -right-0.5 h-4 w-4 rounded-full bg-[#c1fbd4] text-[9px] font-semibold text-black flex items-center justify-center">
                 {count > 9 ? '9+' : count}
               </span>
             )}
           </button>
 
+          {/* Mobile menu toggle */}
           <Button
-            variant="ghost"
+            variant="ghost-white"
             size="icon"
             className="md:hidden"
             onClick={() => setMobileOpen(!mobileOpen)}
@@ -97,18 +96,26 @@ export function Navbar() {
         </div>
       </div>
 
+      {/* Mobile nav */}
       {mobileOpen && (
-        <div className="md:hidden border-t bg-white px-4 py-3 space-y-1">
+        <div className="md:hidden border-t border-white/10 bg-black px-4 py-3 space-y-1">
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
               href={link.href}
               onClick={() => setMobileOpen(false)}
-              className="block px-3 py-2 text-sm font-medium rounded-md hover:bg-muted transition-colors"
+              className="block px-4 py-2.5 text-sm text-white/70 hover:text-white rounded-full hover:bg-white/5 transition-colors"
             >
               {link.label}
             </Link>
           ))}
+          {!user && (
+            <Link href="/login" onClick={() => setMobileOpen(false)}>
+              <Button variant="outline-white" size="sm" className="mt-2 w-full">
+                Entrar
+              </Button>
+            </Link>
+          )}
         </div>
       )}
     </header>

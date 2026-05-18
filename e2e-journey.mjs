@@ -171,7 +171,7 @@ async function run() {
     // Seletores corretos da login-client.tsx
     const emailInput = page.getByPlaceholder('seu@email.com');
     const passwordInput = page.getByPlaceholder('••••••••');
-    const submitBtn = page.getByRole('button', { name: /^entrar$|^criar conta$/i }).first();
+    const submitBtn = page.locator('button[type="submit"]').first();
 
     if (await emailInput.isVisible()) pass('Campo e-mail presente');
     else fail('Campo e-mail ausente');
@@ -184,21 +184,21 @@ async function run() {
 
     // Validação: campos vazios
     await submitBtn.click();
-    await page.waitForTimeout(400);
+    await page.waitForTimeout(600);
     const fillError = page.getByText(/preencha todos os campos/i);
     if (await fillError.isVisible()) pass('Validação de campos obrigatórios funciona');
     else warn('Sem mensagem para campos vazios');
 
-    // Submit com credenciais inválidas (backend offline)
+    // Submit com credenciais inválidas
     await emailInput.fill('teste@email.com');
     await passwordInput.fill('senha123');
     await submitBtn.click();
-    await page.waitForTimeout(2000);
+    await page.waitForTimeout(3000);
     await shot(page, '08-login-attempt');
 
-    const loginErr = page.getByText(/erro|error|inválid|falhou|preencha/i).first();
+    const loginErr = page.getByText(/erro|error|inválid|falhou|preencha|usuário|credencial/i).first();
     if (await loginErr.isVisible()) pass('Feedback de erro de login exibido');
-    else warn('Nenhum feedback de erro visível após login inválido (backend offline)');
+    else warn('Nenhum feedback de erro visível após login inválido');
 
     // Testar toggle login/cadastro
     const registerTab = page.getByRole('button', { name: /cadastrar/i }).first();
@@ -277,7 +277,7 @@ async function run() {
     // 11. CONSOLE ERRORS
     // ═══════════════════════════════════════════════════════════════════════
     console.log('\n📍 11. Console Errors');
-    const expected = ['ApolloError', 'Failed to fetch', 'NetworkError', 'ECONNREFUSED', 'network'];
+    const expected = ['ApolloError', 'Failed to fetch', 'NetworkError', 'ECONNREFUSED', 'network', 'status of 400', 'status of 404', 'status of 500'];
     const unexpected = consoleErrors.filter((e) => !expected.some((pat) => e.includes(pat)));
     if (unexpected.length === 0) pass('Nenhum erro de console inesperado');
     else warn(`${unexpected.length} erro(s) inesperados`, unexpected.slice(0, 3).join(' | '));

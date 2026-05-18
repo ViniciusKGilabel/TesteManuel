@@ -66,7 +66,7 @@ export class PostgresProductRepository implements IProductRepository {
 
   async findAll(): Promise<Product[]> {
     const { rows } = await this.pool.query<ProductRow>('SELECT * FROM products ORDER BY created_at');
-    return rows.map((r) => this.toProduct(r));
+    return rows.map((r: ProductRow) => this.toProduct(r));
   }
 
   async findByName(name: string): Promise<Product | null> {

@@ -124,8 +124,8 @@ export default function OrdersPage() {
   return (
     <div className="container py-10">
       <div className="mb-8">
-        <p className="text-sm font-medium text-orange-500 mb-1">Conta</p>
-        <h1 className="text-4xl font-extrabold tracking-tight">Meus pedidos</h1>
+        <p className="text-xs font-medium tracking-widest text-[#71717a] uppercase mb-2">Conta</p>
+        <h1 className="text-4xl font-light tracking-tight">Meus pedidos</h1>
         {data && (
           <p className="text-muted-foreground mt-2">
             {data.orders.length} {data.orders.length === 1 ? 'pedido' : 'pedidos'} encontrado{data.orders.length !== 1 ? 's' : ''}

@@ -4,29 +4,36 @@ import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]',
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full text-sm font-normal transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]',
   {
     variants: {
       variant: {
-        default:
-          'bg-primary text-primary-foreground shadow hover:bg-primary/90',
-        brand:
-          'bg-orange-500 text-white shadow hover:bg-orange-600 font-semibold',
-        destructive:
-          'bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90',
-        outline:
-          'border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground',
-        secondary:
-          'bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80',
-        ghost: 'hover:bg-accent hover:text-accent-foreground',
-        link: 'text-primary underline-offset-4 hover:underline',
+        // primary pill — black fill, white text
+        default:         'bg-black text-white hover:bg-[#3f3f46]',
+        // brand = default (backwards compat)
+        brand:           'bg-black text-white hover:bg-[#3f3f46]',
+        // outline on light canvas — black border, black text
+        outline:         'border border-black bg-transparent text-black hover:bg-black/5',
+        // outline on dark canvas — white border, white text
+        'outline-white': 'border-2 border-white bg-transparent text-white hover:bg-white/10',
+        // aloe pill — mint fill, black text (featured CTA on light)
+        aloe:            'bg-[#c1fbd4] text-black hover:bg-[#a8f7c4]',
+        // neutral secondary
+        secondary:       'bg-[#d4d4d8] text-black hover:bg-[#a1a1aa]',
+        // ghost on light
+        ghost:           'bg-transparent text-black hover:bg-black/5',
+        // ghost on dark canvas
+        'ghost-white':   'bg-transparent text-white hover:bg-white/10',
+        // destructive
+        destructive:     'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+        link:            'bg-transparent text-black underline-offset-4 hover:underline p-0',
       },
       size: {
-        default: 'h-9 px-4 py-2',
-        sm: 'h-8 rounded-md px-3 text-xs',
-        lg: 'h-11 rounded-md px-8 text-base',
-        xl: 'h-12 rounded-md px-10 text-base font-semibold',
-        icon: 'h-9 w-9',
+        default: 'h-9 px-6 py-2',
+        sm:     'h-8 px-4 text-xs',
+        lg:     'h-11 px-8 text-base',
+        xl:     'h-12 px-10 text-base',
+        icon:   'h-9 w-9',
       },
     },
     defaultVariants: {

@@ -5,8 +5,23 @@ import { auth } from './infrastructure/auth/auth.js';
 const app = express();
 const port = Number(process.env.PORT ?? 3001);
 
-// BetterAuth handles CORS via trustedOrigins — do NOT add a separate cors() middleware
-// before this handler or the response will have duplicate Access-Control-Allow-Origin headers.
+const trustedOrigins = (process.env.TRUSTED_ORIGINS ?? 'http://localhost:3000').split(',');
+
+app.use('/api/auth', (req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && trustedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
+  }
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(204);
+    return;
+  }
+  next();
+});
+
 app.all('/api/auth/*', toNodeHandler(auth));
 
 app.use(express.json());
